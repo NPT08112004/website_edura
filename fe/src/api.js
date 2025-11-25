@@ -1,7 +1,9 @@
 // src/api.js
 // API wrapper cho FE (React). ĐÃ THÊM: presignUpload(), registerDocument() cho flow Direct-to-S3.
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://edura-website.onrender.com";
 
 /* -------------------- core HTTP helper -------------------- */
 async function http(method, url, body, isForm = false) {
