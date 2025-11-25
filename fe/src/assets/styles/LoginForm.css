@@ -1,0 +1,341 @@
+:root {
+  --yellow: #F4B400;
+  --blue: #2563EB;
+  --white: #FFFFFF;
+  --text-dark: #111827;
+  --text-gray: #6b7280;
+  --border-gray: #E6E9EF;
+}
+
+/* Font chữ phù hợp với tiếng Việt */
+.login-page,
+.login-header,
+.login-main,
+.login-card,
+.login-form,
+.login-button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Page container với background image */
+.login-page {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Background image sẽ được set từ prop bgImage */
+}
+
+/* Header bar màu vàng */
+.login-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px; /* Tăng chiều cao */
+  background: var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px; /* Tăng padding */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* Tăng khoảng cách */
+}
+
+.header-logo {
+  height: 36px; /* Tăng kích thước logo */
+  width: auto;
+}
+
+.logo-badge {
+  width: 36px; /* Tăng kích thước badge */
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--yellow), var(--blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-number {
+  color: var(--white);
+  font-weight: 800;
+  font-size: 16px; /* Tăng font size */
+}
+
+.brand-text {
+  color: var(--blue);
+  font-weight: 800;
+  font-size: 18px; /* Tăng font size */
+}
+
+.page-title {
+  color: var(--white);
+  font-weight: 700;
+  font-size: 26px; /* Tăng font size */
+  margin-left: 16px; /* Tăng khoảng cách */
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 32px; /* Tăng khoảng cách */
+}
+
+.nav-link {
+  color: var(--white);
+  text-decoration: none;
+  font-size: 16px; /* Tăng font size */
+  transition: opacity 0.2s;
+}
+
+.nav-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Main content area */
+.login-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Căn giữa */
+  padding: 32px 24px; /* Điều chỉnh padding */
+  margin-top: 72px; /* Để tránh bị header che */
+  min-height: calc(100vh - 72px);
+  position: relative;
+  z-index: 1;
+}
+
+/* Login card */
+.login-card {
+  width: min(92vw, 520px); /* Tăng width */
+  max-width: 520px; /* Tăng max-width */
+  background: var(--white);
+  border-radius: 22px; /* Tăng border-radius */
+  padding: 32px; /* Tăng padding */
+  box-shadow: 0 18px 80px rgba(0, 0, 0, 0.12);
+  border: 1px solid #EEF0F4;
+}
+
+/* Brand section trong card */
+.card-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Tăng khoảng cách */
+  justify-content: center;
+  margin-bottom: 24px; /* Tăng margin */
+}
+
+.card-logo {
+  height: 36px; /* Tăng kích thước logo */
+  width: auto;
+}
+
+.card-logo-badge {
+  width: 40px; /* Tăng kích thước badge */
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--yellow), var(--blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-logo-number {
+  color: var(--white);
+  font-weight: 800;
+  font-size: 18px; /* Tăng font size */
+}
+
+.card-brand-text {
+  color: var(--blue);
+  font-weight: 800;
+  font-size: 18px; /* Tăng font size */
+}
+
+/* Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Tăng khoảng cách */
+}
+
+/* Form fields với underline */
+.form-field {
+  position: relative;
+  border-bottom: 2px solid var(--border-gray);
+  transition: border-color 0.2s;
+}
+
+.form-field:focus-within {
+  border-bottom-color: var(--blue);
+}
+
+.form-field input {
+  width: 100%;
+  height: 44px; /* Tăng chiều cao */
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-dark);
+  font-size: 15px; /* Tăng font size */
+  padding: 0;
+}
+
+.form-field input::placeholder {
+  color: var(--text-gray);
+  opacity: 0.6;
+}
+
+/* Password field */
+.password-field {
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-gray);
+  opacity: 0.6;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+  color: var(--blue);
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+.password-toggle:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+/* Forgot password link */
+.forgot-password {
+  text-align: right;
+  margin-top: -8px;
+  margin-bottom: -8px;
+}
+
+.link-blue {
+  color: var(--blue);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.link-blue:hover {
+  text-decoration: underline;
+}
+
+/* Login button */
+.login-button {
+  margin-top: 8px; /* Điều chỉnh margin */
+  height: 48px; /* Tăng chiều cao */
+  width: 100%;
+  border: none;
+  border-radius: 10px; /* Tăng border-radius */
+  background: var(--yellow);
+  color: var(--white);
+  font-weight: 800;
+  font-size: 16px; /* Tăng font size */
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(244, 180, 0, 0.25);
+  transition: all 0.2s;
+}
+
+.login-button:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(244, 180, 0, 0.3);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Registration prompt */
+.registration-prompt {
+  text-align: center;
+  margin-top: 12px; /* Tăng margin */
+  font-size: 14px; /* Tăng font size */
+  color: var(--text-gray);
+}
+
+.prompt-text {
+  margin-right: 4px;
+}
+
+.register-link {
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* Back to home link */
+.back-to-home {
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-gray);
+}
+
+.back-to-home .link-blue {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .login-main {
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .login-card {
+    padding: 24px 20px;
+    border-radius: 18px;
+  }
+}

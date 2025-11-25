@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "pdfjs-dist": "^5.4.394",
+    "react-router-dom": "^7.9.5"
+  }
+}

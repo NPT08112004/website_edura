@@ -1,0 +1,399 @@
+.topup-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.topup-modal-content {
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.topup-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.topup-modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.topup-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.topup-modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.topup-modal-body {
+  padding: 28px;
+}
+
+/* Payment Methods */
+.payment-methods {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.payment-method-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.payment-method-btn:hover {
+  border-color: #2563EB;
+  color: #2563EB;
+}
+
+.payment-method-btn.active {
+  border-color: #2563EB;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563EB;
+}
+
+/* Amount Section */
+.amount-section {
+  margin-bottom: 24px;
+}
+
+.amount-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0 16px;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+
+.amount-input-wrapper:focus-within {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.amount-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 14px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.amount-currency {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.preset-amounts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.preset-amount-btn {
+  padding: 8px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.preset-amount-btn:hover {
+  border-color: #2563EB;
+  color: #2563EB;
+}
+
+.preset-amount-btn.active {
+  border-color: #2563EB;
+  background: #2563EB;
+  color: white;
+}
+
+.points-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-radius: 12px;
+  color: #2563EB;
+  font-weight: 600;
+}
+
+.points-preview strong {
+  font-size: 18px;
+  color: #2563EB;
+}
+
+.points-rate {
+  margin-left: auto;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* QR Section */
+.qr-section {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.qr-code-wrapper {
+  display: inline-block;
+  padding: 20px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.qr-code-image {
+  width: 200px;
+  height: 200px;
+  display: block;
+}
+
+.qr-instructions {
+  text-align: left;
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.qr-instructions h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.qr-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+  color: #374151;
+  line-height: 1.8;
+}
+
+.qr-instructions li {
+  margin-bottom: 8px;
+}
+
+/* Bank Info */
+.bank-info {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.bank-info h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.bank-details {
+  color: #374151;
+  line-height: 1.8;
+}
+
+.bank-details p {
+  margin: 4px 0;
+}
+
+.bank-details strong {
+  color: #111827;
+}
+
+/* Footer */
+.topup-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 20px 28px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.topup-cancel-btn,
+.topup-confirm-btn {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.topup-cancel-btn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.topup-cancel-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.topup-confirm-btn {
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 100%);
+  color: white;
+}
+
+.topup-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.topup-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinning animation for loader */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Payment link button */
+.payment-link-btn:hover {
+  background: #1d4ed8 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+/* QR loading */
+.qr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.qr-loading p {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+/* Topup form */
+.topup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .topup-modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .topup-modal-header {
+    padding: 20px;
+  }
+
+  .topup-modal-body {
+    padding: 20px;
+  }
+
+  .payment-methods {
+    flex-direction: column;
+  }
+
+  .preset-amounts {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+

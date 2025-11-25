@@ -1,0 +1,6 @@
+@Edura.Api_HostAddress = http://localhost:5264
+
+GET {{Edura.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

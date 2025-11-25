@@ -1,0 +1,20 @@
+flask
+pymongo
+pyjwt
+python-dotenv
+werkzeug
+boto3
+pdfplumber
+google-genai
+flasgger
+flask-cors
+python-docx
+docx2txt
+Pillow
+requests
+flask-socketio
+eventlet
+PyMuPDF
+qrcode
+flask-limiter>=3.5.0  # Rate limiting for security (optional but recommended)
+google-auth>=2.23.0  # Google OAuth authentication

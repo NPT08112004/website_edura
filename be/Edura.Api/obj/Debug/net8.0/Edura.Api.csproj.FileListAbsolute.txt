@@ -1,0 +1,8 @@
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\Edura.Api.csproj.AssemblyReference.cache
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\Edura.Api.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\Edura.Api.AssemblyInfoInputs.cache
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\Edura.Api.AssemblyInfo.cs
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\Edura.Api.csproj.CoreCompileInputs.cache
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\Edura.Api.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\acer\Downloads\New folder\src\Edura.Api\obj\Debug\net8.0\Edura.Api.MvcApplicationPartsAssemblyInfo.cache
