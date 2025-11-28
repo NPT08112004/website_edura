@@ -4,10 +4,9 @@ export default function Logo({
   onClick, 
   showText = false, 
   size = 'default',
-  className = '',
-  src
+  className = '' 
 }) {
-  const logoPath = src || '/images/logodetail-removebg-preview%20(1).png';
+  const logoPath = '/images/unnamed__2_-removebg-preview.png';
   
   const sizeClasses = {
     small: 'logo-small',
