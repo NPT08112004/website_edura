@@ -1,6 +1,7 @@
 // src/components/Profile.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { BookOpen, Eye, Link2, Trash2, ExternalLink, FileText, Clock3 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { BookOpen, Eye, Link2, Trash2, ExternalLink, FileText, Clock3, Bookmark } from "lucide-react";
 import {
   getMyProfile,
   updateMyProfile,
@@ -9,19 +10,43 @@ import {
   deleteDocumentById,
   getMyViewHistory,
   getDocumentRawUrl,
+  getMySavedDocuments,
 } from "../api";
 import "../assets/styles/Profile.css";
 
 export default function ProfilePage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [me, setMe] = useState(null);
   const [fullName, setFullName] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
-  const [tab, setTab] = useState("mine"); // mine | history
+  
+  // Đọc tab từ URL query parameter, mặc định là "mine"
+  const getInitialTab = () => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab");
+    if (tabParam === "saved" || tabParam === "history" || tabParam === "mine") {
+      return tabParam;
+    }
+    return "mine";
+  };
+  
+  const [tab, setTab] = useState(getInitialTab()); // mine | saved | history
   const [myDocs, setMyDocs] = useState([]);
   const [history, setHistory] = useState([]);
+  const [savedDocs, setSavedDocs] = useState([]);
+
+  // Cập nhật tab khi URL query parameter thay đổi
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab");
+    if (tabParam === "saved" || tabParam === "history" || tabParam === "mine") {
+      setTab(tabParam);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     (async () => {
@@ -29,9 +54,18 @@ export default function ProfilePage() {
         const info = await getMyProfile();
         setMe(info);
         setFullName(info?.fullName || "");
-        const [docs, his] = await Promise.all([getMyDocuments(), getMyViewHistory()]);
+        const [docs, his, saved] = await Promise.all([
+          getMyDocuments(),
+          getMyViewHistory(),
+          getMySavedDocuments(),
+        ]);
         setMyDocs(docs || []);
         setHistory(his || []);
+        if (saved && Array.isArray(saved.items)) {
+          setSavedDocs(saved.items);
+        } else {
+          setSavedDocs(Array.isArray(saved) ? saved : []);
+        }
       } catch (e) {
         alert(e.message || "Lỗi tải hồ sơ");
       } finally {
@@ -98,7 +132,7 @@ export default function ProfilePage() {
 
   const avatarSrc = useMemo(() => {
     if (avatarPreview) return avatarPreview;
-    return me?.avatarUrl || "/images/default-avatar.png";
+    return me?.avatarUrl || "/images/png-clipart-user-computer-icons-avatar-miscellaneous-heroes.png";
   }, [avatarPreview, me?.avatarUrl]);
 
   const joinedAt = useMemo(() => {
@@ -154,6 +188,49 @@ export default function ProfilePage() {
     );
   }, [processedDocs]);
 
+  const processedSavedDocs = useMemo(() => {
+    const list = Array.isArray(savedDocs) ? savedDocs : [];
+    return list
+      .map((doc) => {
+        const id = doc._id || doc.id;
+        if (!id) return null;
+        const rawPages =
+          doc.pages ??
+          doc.pageCount ??
+          doc.page_count ??
+          doc.metadata?.pages ??
+          doc.totalPages;
+        const pageCount = Number.isFinite(rawPages) ? rawPages : parseInt(rawPages, 10) || 0;
+        const rawDate = doc.created_at || doc.createdAt;
+        const dateObj = rawDate ? new Date(rawDate) : null;
+        const s3Url = (doc.s3_url || doc.s3Url || "").toLowerCase();
+        const fileType = s3Url.endsWith(".doc") || s3Url.endsWith(".docx") ? "doc" : "pdf";
+        return {
+          id,
+          title: doc.title || "Tài liệu không tên",
+          summary: doc.summary || doc.description || "Tài liệu chưa có mô tả.",
+          views: doc.views || 0,
+          pageCount,
+          createdDate: dateObj && !Number.isNaN(dateObj.getTime()) ? dateObj : null,
+          fileType,
+          image: doc.image_url || doc.imageUrl || "/images/pdf-placeholder.jpg",
+          schoolName: doc.school_name || doc.schoolName || "Chưa rõ trường",
+        };
+      })
+      .filter(Boolean);
+  }, [savedDocs]);
+
+  const savedSummary = useMemo(() => {
+    return processedSavedDocs.reduce(
+      (acc, doc) => {
+        acc.totalViews += doc.views || 0;
+        acc.totalPages += doc.pageCount || 0;
+        return acc;
+      },
+      { totalViews: 0, totalPages: 0 }
+    );
+  }, [processedSavedDocs]);
+
   const processedHistory = useMemo(() => {
     if (!Array.isArray(history)) return [];
     return history.map((item, idx) => {
@@ -206,6 +283,19 @@ export default function ProfilePage() {
     }
   };
 
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    // Cập nhật URL query parameter để giữ đồng bộ
+    const params = new URLSearchParams(location.search);
+    if (newTab === "mine") {
+      params.delete("tab");
+    } else {
+      params.set("tab", newTab);
+    }
+    const newSearch = params.toString();
+    navigate(`/profile${newSearch ? `?${newSearch}` : ""}`, { replace: true });
+  };
+
   if (loading) {
     return (
       <div className="profile-loading">
@@ -249,6 +339,11 @@ export default function ProfilePage() {
                 <div className="profile-stat__label">Tài liệu</div>
                 <div className="profile-stat__value">{myDocs.length}</div>
                 <p className="profile-stat__hint">Đã đăng tải</p>
+              </div>
+              <div className="profile-stat">
+                <div className="profile-stat__label">Đã lưu</div>
+                <div className="profile-stat__value">{processedSavedDocs.length}</div>
+                <p className="profile-stat__hint">Tài liệu yêu thích</p>
               </div>
               <div className="profile-stat">
                 <div className="profile-stat__label">Lịch sử</div>
@@ -325,19 +420,25 @@ export default function ProfilePage() {
           <div className="profile-tabs">
             <button
               className={`profile-tabs__button ${tab === "mine" ? "is-active" : ""}`}
-              onClick={() => setTab("mine")}
+              onClick={() => handleTabChange("mine")}
             >
               Tài liệu của tôi
             </button>
             <button
+              className={`profile-tabs__button ${tab === "saved" ? "is-active" : ""}`}
+              onClick={() => handleTabChange("saved")}
+            >
+              Tài liệu đã lưu
+            </button>
+            <button
               className={`profile-tabs__button ${tab === "history" ? "is-active" : ""}`}
-              onClick={() => setTab("history")}
+              onClick={() => handleTabChange("history")}
             >
               Lịch sử đã xem
             </button>
           </div>
 
-          {tab === "mine" ? (
+          {tab === "mine" && (
             <div className="profile-grid">
               {processedDocs.length ? (
                 <>
@@ -425,7 +526,96 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {tab === "saved" && (
+            <div className="profile-grid">
+              {processedSavedDocs.length ? (
+                <>
+                  <div className="profile-doc-summary">
+                    <div className="profile-doc-summary__item">
+                      <span className="label">Tài liệu đã lưu</span>
+                      <strong>{processedSavedDocs.length}</strong>
+                    </div>
+                    <div className="profile-doc-summary__item">
+                      <span className="label">Tổng lượt xem</span>
+                      <strong>{savedSummary.totalViews.toLocaleString("vi-VN")}</strong>
+                    </div>
+                  </div>
+                  {processedSavedDocs.map((doc) => (
+                    <article key={doc.id} className="profile-doc profile-doc--saved">
+                      <div className="profile-doc__media">
+                        <img src={doc.image} alt="thumbnail" loading="lazy" />
+                        <span className={`profile-doc__badge profile-doc__badge--${doc.fileType}`}>
+                          {doc.fileType.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="profile-doc__body">
+                        <div className="profile-doc__top">
+                          <div>
+                            <h3 className="profile-doc__title">{doc.title}</h3>
+                            <p className="profile-doc__date">
+                              Đã lưu từ {formatDocDate(doc.createdDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="profile-doc__summary">{truncateSummary(doc.summary)}</p>
+                        <div className="profile-doc__stats">
+                          <span>
+                            <Bookmark size={16} />
+                            {doc.schoolName}
+                          </span>
+                          <span>
+                            <Eye size={16} />
+                            {doc.views.toLocaleString("vi-VN")} lượt xem
+                          </span>
+                          {doc.pageCount ? (
+                            <span>
+                              <BookOpen size={16} />
+                              {doc.pageCount.toLocaleString("vi-VN")} trang
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="profile-doc__actions">
+                          <button
+                            className="profile-doc__btn profile-doc__btn--primary"
+                            onClick={() => handleOpenViewer(doc.id)}
+                          >
+                            <ExternalLink size={16} />
+                            Mở tài liệu
+                          </button>
+                          <button
+                            className="profile-doc__btn"
+                            onClick={() => handleOpenRaw(doc.id)}
+                          >
+                            <FileText size={16} />
+                            Tệp gốc
+                          </button>
+                          <button
+                            className="profile-doc__btn profile-doc__btn--ghost"
+                            onClick={() => handleCopyLink(doc.id)}
+                          >
+                            <Link2 size={16} />
+                            Sao chép link
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </>
+              ) : (
+                <div className="profile-empty">
+                  <div className="profile-empty__icon">🔖</div>
+                  <p className="profile-empty__title">Bạn chưa lưu tài liệu nào.</p>
+                  <p className="profile-empty__subtitle">
+                    Nhấn nút lưu/đánh dấu trong trang tài liệu để gom lại tại đây.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "history" && (
             <div className="profile-grid">
               {processedHistory.length ? (
                 processedHistory.map((h) => (

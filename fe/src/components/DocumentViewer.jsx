@@ -21,6 +21,7 @@ import {
 } from "../api";
 import Sidebar from "./Sidebar";
 import MessageDropdown from "./MessageDropdown";
+import Logo from "./Logo";
 import { getInitials } from "../utils/avatarUtils";
 import "../assets/styles/DocumentViewer.css";
 import "../assets/styles/HomePage.css";
@@ -545,16 +546,11 @@ export default function DocumentViewer({ documentId, onBack }) {
             >
               <Menu size={24} />
             </button>
-            <div 
-              className="logo-section" 
+            <Logo 
               onClick={() => window.location.href = '/'}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="logo-badge">
-                <span className="logo-number">87</span>
-              </div>
-              <span className="brand-text">Edura</span>
-            </div>
+              showText={false}
+              size="default"
+            />
           </div>
           <div className="header-center">
             <form className="search-container" onSubmit={handleSearch}>
@@ -585,7 +581,11 @@ export default function DocumentViewer({ documentId, onBack }) {
             {isLoggedIn ? (
               <>
                 <MessageDropdown />
-                <span className="user-email-header">
+                <span 
+                  className="user-email-header"
+                  onClick={() => window.location.href = '/profile'}
+                  style={{ cursor: 'pointer' }}
+                >
                   {user.fullName || user.username || 'Người dùng'}
                 </span>
                 <button 
@@ -663,16 +663,11 @@ export default function DocumentViewer({ documentId, onBack }) {
             >
               <Menu size={24} />
             </button>
-            <div 
-              className="logo-section" 
+            <Logo 
               onClick={() => window.location.href = '/'}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="logo-badge">
-                <span className="logo-number">87</span>
-              </div>
-              <span className="brand-text">Edura</span>
-            </div>
+              showText={false}
+              size="default"
+            />
           </div>
           <div className="header-center">
             <form className="search-container" onSubmit={handleSearch}>
@@ -703,7 +698,11 @@ export default function DocumentViewer({ documentId, onBack }) {
             {isLoggedIn ? (
               <>
                 <MessageDropdown />
-                <span className="user-email-header">
+                <span 
+                  className="user-email-header"
+                  onClick={() => window.location.href = '/profile'}
+                  style={{ cursor: 'pointer' }}
+                >
                   {user.fullName || user.username || 'Người dùng'}
                 </span>
                 <button 

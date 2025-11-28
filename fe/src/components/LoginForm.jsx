@@ -206,7 +206,6 @@ export default function LoginForm({ switchToRegister, switchToHome, bgImage, log
                 <span className="logo-number">87</span>
               </div>
             )}
-            <span className="brand-text">Edura</span>
           </div>
           <span className="page-title">Đăng nhập</span>
         </div>
@@ -228,7 +227,6 @@ export default function LoginForm({ switchToRegister, switchToHome, bgImage, log
                 <span className="card-logo-number">87</span>
               </div>
             )}
-            <span className="card-brand-text">Edura</span>
           </div>
 
           {/* Form */}
@@ -237,7 +235,7 @@ export default function LoginForm({ switchToRegister, switchToHome, bgImage, log
             <div className="form-field">
               <input
                 type="text"
-                placeholder="Họ và tên"
+                placeholder="Email"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required

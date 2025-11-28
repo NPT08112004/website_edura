@@ -40,20 +40,21 @@
   /* Background image sẽ được set từ prop bgImage */
 }
 
-/* Header bar màu xanh */
+/* Header bar màu trắng */
 .register-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   height: 72px;
-  background: var(--blue);
+  background: var(--white);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  border-bottom: 1px solid var(--border-gray);
 }
 
 .header-left {
@@ -63,8 +64,10 @@
 }
 
 .header-logo {
-  height: 36px;
+  height: 128px; /* Logo to gấp đôi */
   width: auto;
+  max-height: 128px;
+  object-fit: contain;
 }
 
 .logo-badge {
@@ -84,13 +87,13 @@
 }
 
 .brand-text {
-  color: var(--white);
+  color: var(--text-dark);
   font-weight: 800;
   font-size: 18px;
 }
 
 .page-title {
-  color: var(--white);
+  color: var(--text-dark);
   font-weight: 700;
   font-size: 26px;
   margin-left: 16px;
@@ -103,7 +106,7 @@
 }
 
 .nav-link {
-  color: var(--white);
+  color: var(--text-dark);
   text-decoration: none;
   font-size: 16px;
   transition: opacity 0.2s;
@@ -111,6 +114,7 @@
 
 .nav-link:hover {
   opacity: 0.8;
+  color: var(--blue);
   text-decoration: underline;
 }
 
@@ -148,8 +152,10 @@
 }
 
 .card-logo {
-  height: 36px;
+  height: 128px; /* Logo to gấp đôi */
   width: auto;
+  max-height: 128px;
+  object-fit: contain;
 }
 
 .card-logo-badge {

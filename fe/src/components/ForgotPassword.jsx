@@ -163,7 +163,6 @@ export default function ForgotPassword({ switchToLogin, bgImage, logo, initialEm
                                 <span className="logo-number">87</span>
                             </div>
                         )}
-                        <span className="brand-text">Edura</span>
                     </div>
                     <span className="page-title">Quên mật khẩu</span>
                 </div>
@@ -185,7 +184,6 @@ export default function ForgotPassword({ switchToLogin, bgImage, logo, initialEm
                                 <span className="card-logo-number">87</span>
                             </div>
                         )}
-                        <span className="card-brand-text">Edura</span>
                     </div>
 
                     {/* Form */}

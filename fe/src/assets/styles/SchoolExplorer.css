@@ -127,7 +127,7 @@
 .school-explorer-header {
   background: var(--white);
   border-bottom: 1px solid var(--border-gray);
-  padding: 12px 24px;
+  padding: 6px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -137,6 +137,9 @@
   box-shadow: var(--shadow-sm);
   position: relative;
   z-index: 10;
+  min-height: 72px;
+  max-height: 72px;
+  overflow: visible;
 }
 
 .header-left {
@@ -173,11 +176,34 @@
   align-items: center;
   gap: 12px;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
 }
 
 .logo-section:hover {
   opacity: 0.8;
   transform: scale(1.05);
+}
+
+.logo-image {
+  object-fit: contain;
+  display: block;
+  max-height: 128px;
+  width: auto;
+  height: auto;
+  transform: scale(1);
+}
+
+.logo-image.logo-small {
+  max-height: 112px;
+}
+
+.logo-image.logo-default {
+  max-height: 128px;
+}
+
+.logo-image.logo-large {
+  max-height: 144px;
 }
 
 .logo-badge {
@@ -189,6 +215,16 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.logo-badge-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logo-number {

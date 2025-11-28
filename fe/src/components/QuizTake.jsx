@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import { ArrowLeft, Menu, Search, Globe } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MessageDropdown from './MessageDropdown';
+import Logo from './Logo';
 import '../assets/styles/Quiz.css';
 import '../assets/styles/HomePage.css';
 
@@ -85,16 +86,11 @@ export default function QuizTake() {
             >
               <Menu size={24} />
             </button>
-            <div 
-              className="logo-section" 
+            <Logo 
               onClick={() => window.location.href = '/'}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="logo-badge">
-                <span className="logo-number">87</span>
-              </div>
-              <span className="brand-text">Edura</span>
-            </div>
+              showText={false}
+              size="default"
+            />
           </div>
           <div className="header-center">
             <div className="search-container">
@@ -115,7 +111,11 @@ export default function QuizTake() {
             {isLoggedIn ? (
               <>
                 <MessageDropdown />
-                <span className="user-email-header">
+                <span 
+                  className="user-email-header"
+                  onClick={() => window.location.href = '/profile'}
+                  style={{ cursor: 'pointer' }}
+                >
                   {user.fullName || user.username || 'Người dùng'}
                 </span>
                 <button 
@@ -233,16 +233,11 @@ export default function QuizTake() {
           >
             <Menu size={24} />
           </button>
-          <div 
-            className="logo-section" 
+          <Logo 
             onClick={() => window.location.href = '/'}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
-            <span className="brand-text">Edura</span>
-          </div>
+            showText={false}
+            size="default"
+          />
         </div>
         <div className="header-center">
           <div className="search-container">
@@ -262,7 +257,11 @@ export default function QuizTake() {
           </div>
           {isLoggedIn ? (
             <>
-              <span className="user-email-header">
+              <span 
+                className="user-email-header"
+                onClick={() => window.location.href = '/profile'}
+                style={{ cursor: 'pointer' }}
+              >
                 {user.fullName || user.username || 'Người dùng'}
               </span>
               <button 

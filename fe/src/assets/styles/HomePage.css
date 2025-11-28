@@ -25,7 +25,7 @@
 .home-header {
   background: var(--white);
   border-bottom: 1px solid var(--border-gray);
-  padding: 12px 24px;
+  padding: 6px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -33,6 +33,9 @@
   top: 0;
   z-index: 100;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-height: 72px;
+  max-height: 72px;
+  overflow: visible;
 }
 
 .header-left {
@@ -64,6 +67,8 @@
   align-items: center;
   gap: 12px;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
 }
 
 .logo-section:hover {
@@ -71,7 +76,38 @@
   transform: scale(1.05);
 }
 
+.logo-image {
+  object-fit: contain;
+  display: block;
+  max-height: 128px;
+  width: auto;
+  height: auto;
+  transform: scale(1);
+}
+
+.logo-image.logo-small {
+  max-height: 112px;
+}
+
+.logo-image.logo-default {
+  max-height: 128px;
+}
+
+.logo-image.logo-large {
+  max-height: 144px;
+}
+
 .logo-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--blue), #1e40af);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-badge-fallback {
   width: 36px;
   height: 36px;
   border-radius: 10px;
@@ -254,6 +290,33 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.active-category-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pill-clear-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pill-clear-btn:hover {
+  color: var(--red);
 }
 
 .filter-select {

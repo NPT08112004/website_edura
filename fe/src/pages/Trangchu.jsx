@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Globe,
   Search,
@@ -13,11 +14,13 @@ import {
 } from "lucide-react";
 import MessageDropdown from "../components/MessageDropdown";
 import Footer from "../components/Footer";
+import Logo from "../components/Logo";
 import { getFeaturedDocumentsWeek, getCategories, checkPaymentStatus, getMyProfile } from "../api";
 import Swal from "sweetalert2";
 import "../assets/styles/Trangchu.css";
 
 export default function Trangchu() {
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem("edura_token")
   );
@@ -178,12 +181,29 @@ export default function Trangchu() {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      window.location.href = `/home?search=${encodeURIComponent(searchQuery.trim())}`;
+      navigate(`/home?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   const handleKeywordClick = (keyword) => {
-    window.location.href = `/home?search=${encodeURIComponent(keyword)}`;
+    navigate(`/home?search=${encodeURIComponent(keyword)}`);
+  };
+
+  const handleCategoryClick = (category) => {
+    const id = category?._id || category?.id;
+    const name = category?.name || category;
+    if (!id) {
+      navigate("/home");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set("categoryId", id);
+    if (name) {
+      params.set("categoryName", name);
+    }
+
+    navigate(`/home?${params.toString()}`);
   };
 
   const quickLinks = useMemo(
@@ -192,21 +212,25 @@ export default function Trangchu() {
         icon: <Sparkles size={16} />,
         title: "Tài liệu vừa tải lên",
         description: "Xem những file mới nhất từ cộng đồng",
+        href: "/home",
       },
       {
         icon: <Flame size={16} />,
         title: "Đề cương ôn thi cuối kì",
-        description: "Tổng hợp đề cương được xem nhiều",
+        description: "Mở ngay ngân hàng Quiz ôn thi",
+        href: "/quizzes",
       },
       {
         icon: <Lightbulb size={16} />,
         title: "Tài liệu theo trường",
         description: "Lọc tài liệu theo trường / khoa của bạn",
+        href: "/schools",
       },
       {
         icon: <BookOpen size={16} />,
         title: "Tài liệu mình đã lưu",
         description: "Tất cả tài liệu bạn đã bookmark",
+        href: "/profile?tab=saved",
       },
     ],
     []
@@ -231,6 +255,16 @@ export default function Trangchu() {
     }
   };
 
+  const handleQuickLinkClick = (link) => {
+    if (link.href) {
+      navigate(link.href);
+      return;
+    }
+    if (typeof link.onClick === "function") {
+      link.onClick();
+    }
+  };
+
   const handleUploadClick = () => {
     window.location.href = "/upload";
   };
@@ -248,16 +282,11 @@ export default function Trangchu() {
       <div className="floating-shape floating-shape--bottom" aria-hidden="true" />
       <header className="home-header">
         <div className="header-left">
-          <div
-            className="logo-section"
+          <Logo 
             onClick={() => (window.location.href = "/")}
-            style={{ cursor: "pointer" }}
-          >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
-            <span className="brand-text">Edura</span>
-          </div>
+            showText={false}
+            size="default"
+          />
         </div>
         <div className="header-center">
           <nav className="trangchu-nav">
@@ -290,7 +319,11 @@ export default function Trangchu() {
           {isLoggedIn ? (
             <>
               <MessageDropdown />
-              <span className="user-email-header">
+              <span 
+                className="user-email-header"
+                onClick={() => window.location.href = '/profile'}
+                style={{ cursor: 'pointer' }}
+              >
                 {user.fullName || user.username || "Người dùng"}
               </span>
               <button
@@ -504,11 +537,7 @@ export default function Trangchu() {
                     {categories.slice(0, 7).map((category) => (
                       <button
                         key={category._id || category.name}
-                        onClick={() => {
-                          if (category._id) {
-                            window.location.href = `/home?categoryId=${category._id}`;
-                          }
-                        }}
+                        onClick={() => handleCategoryClick(category)}
                         style={{ cursor: category._id ? "pointer" : "default" }}
                       >
                         {category.name || category}
@@ -517,9 +546,7 @@ export default function Trangchu() {
                     ))}
                     {categories.length > 7 && (
                       <button
-                        onClick={() => {
-                          window.location.href = `/home`;
-                        }}
+                        onClick={() => navigate("/home")}
                         style={{ cursor: "pointer" }}
                       >
                         Xem thêm...
@@ -540,7 +567,13 @@ export default function Trangchu() {
               </div>
               <div className="quick-links">
                 {quickLinks.map((link) => (
-                  <button key={link.title} className="quick-link-item">
+                  <button
+                    key={link.title}
+                    type="button"
+                    className="quick-link-item"
+                    onClick={() => handleQuickLinkClick(link)}
+                    aria-label={`Đi tới ${link.title}`}
+                  >
                     <span className="quick-link-icon">{link.icon}</span>
                     <span>
                       <strong>{link.title}</strong>

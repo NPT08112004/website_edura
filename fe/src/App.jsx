@@ -114,6 +114,7 @@ export default function App() {
           switchToRegister={() => window.location.href = '/register'}
           switchToHome={() => window.location.href = '/'}
           bgImage="/images/96129c04-ea0b-4b5e-9f92-0710e3b6c647.png"
+          logo="/images/unnamed__2_-removebg-preview.png"
         />
       }/>
       <Route path="/register" element={
@@ -122,6 +123,7 @@ export default function App() {
           switchToLogin={() => window.location.href = '/login'}
           switchToHome={() => window.location.href = '/'}
           bgImage="/images/96129c04-ea0b-4b5e-9f92-0710e3b6c647.png"
+          logo="/images/unnamed__2_-removebg-preview.png"
         />
       }/>
 

@@ -346,6 +346,11 @@ export async function getMyViewHistory() {
   return http("GET", "/api/profile/view-history");
 }
 
+// Lấy tài liệu đã lưu (favorites)
+export async function getMySavedDocuments() {
+  return http("GET", "/api/mobile/documents/saved");
+}
+
 /* -------------------- Chat -------------------- */
 export async function getChatHistory(documentId, targetUserId) {
   const params = new URLSearchParams({ documentId, targetUserId });

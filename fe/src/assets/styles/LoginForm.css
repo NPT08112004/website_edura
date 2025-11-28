@@ -40,20 +40,21 @@
   /* Background image sẽ được set từ prop bgImage */
 }
 
-/* Header bar màu vàng */
+/* Header bar màu trắng */
 .login-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   height: 72px; /* Tăng chiều cao */
-  background: var(--yellow);
+  background: var(--white);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px; /* Tăng padding */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  border-bottom: 1px solid var(--border-gray);
 }
 
 .header-left {
@@ -63,8 +64,10 @@
 }
 
 .header-logo {
-  height: 36px; /* Tăng kích thước logo */
+  height: 128px; /* Logo to gấp đôi */
   width: auto;
+  max-height: 128px;
+  object-fit: contain;
 }
 
 .logo-badge {
@@ -90,7 +93,7 @@
 }
 
 .page-title {
-  color: var(--white);
+  color: var(--text-dark);
   font-weight: 700;
   font-size: 26px; /* Tăng font size */
   margin-left: 16px; /* Tăng khoảng cách */
@@ -103,7 +106,7 @@
 }
 
 .nav-link {
-  color: var(--white);
+  color: var(--text-dark);
   text-decoration: none;
   font-size: 16px; /* Tăng font size */
   transition: opacity 0.2s;
@@ -111,6 +114,7 @@
 
 .nav-link:hover {
   opacity: 0.8;
+  color: var(--blue);
   text-decoration: underline;
 }
 
@@ -148,8 +152,10 @@
 }
 
 .card-logo {
-  height: 36px; /* Tăng kích thước logo */
+  height: 128px; /* Logo to gấp đôi */
   width: auto;
+  max-height: 128px;
+  object-fit: contain;
 }
 
 .card-logo-badge {
@@ -272,19 +278,19 @@
   width: 100%;
   border: none;
   border-radius: 10px; /* Tăng border-radius */
-  background: var(--yellow);
+  background: var(--blue);
   color: var(--white);
   font-weight: 800;
   font-size: 16px; /* Tăng font size */
   cursor: pointer;
-  box-shadow: 0 10px 24px rgba(244, 180, 0, 0.25);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
   transition: all 0.2s;
 }
 
 .login-button:hover:not(:disabled) {
   filter: brightness(1.05);
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(244, 180, 0, 0.3);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.3);
 }
 
 .login-button:active:not(:disabled) {

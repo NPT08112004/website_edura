@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Users, FileText, Home, LogOut, Shield } from 'lucide-react';
 import MessageDropdown from './MessageDropdown';
-import { getInitials, hasValidAvatar } from '../utils/avatarUtils';
+import Logo from './Logo';
+import { getInitials, hasValidAvatar, getAvatarUrl } from '../utils/avatarUtils';
 import '../assets/styles/AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -10,16 +11,13 @@ export default function AdminDashboard() {
     catch { return {}; }
   }, []);
 
-  const [avatarFailed, setAvatarFailed] = useState(false);
-
   const isLoggedIn = !!localStorage.getItem('edura_token');
   const isAdmin = me?.role === 'admin';
 
   const avatarUrl = me?.avatarUrl;
-  const hasAvatar = hasValidAvatar(avatarUrl);
+  const displayAvatarUrl = getAvatarUrl(avatarUrl);
   const avatarInitials = getInitials(me?.fullName, me?.username);
   const avatarAlt = me?.fullName || me?.username || 'Người dùng';
-  const showInitials = !hasAvatar || avatarFailed;
 
   function onLogout() {
     localStorage.removeItem('edura_token');
@@ -52,11 +50,9 @@ export default function AdminDashboard() {
           <div
             className="logo-section"
             onClick={() => window.location.href = '/'}
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}
           >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
+            <Logo showText={false} size="default" />
             <div>
               <h1 className="logo">Edura Admin</h1>
               <p className="logo-subtitle">Trang quản trị hệ thống</p>
@@ -67,16 +63,18 @@ export default function AdminDashboard() {
           <MessageDropdown />
           <div className="user-info">
             <div className="user-avatar">
-              {hasAvatar && !avatarFailed ? (
-                <img
-                  src={avatarUrl}
-                  alt={avatarAlt}
-                  onError={() => setAvatarFailed(true)}
-                />
-              ) : null}
-              {showInitials && (
-                <span className="user-avatar-initials">{avatarInitials}</span>
-              )}
+              <img
+                src={displayAvatarUrl}
+                alt={avatarAlt}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  const placeholder = e.target.parentElement.querySelector('.user-avatar-initials');
+                  if (placeholder) {
+                    placeholder.style.display = 'flex';
+                  }
+                }}
+              />
+              <span className="user-avatar-initials" style={{ display: 'none' }}>{avatarInitials}</span>
             </div>
             <div className="user-details">
               <span className="user-name">{me.username || 'Admin'}</span>

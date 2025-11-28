@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, X, Globe, Filter, List, Grid, Menu } from 'lucide-react';
 import { getDocuments, getSchools, getCategories } from '../api';
 import Sidebar from './Sidebar';
 import DateRangePicker from './DateRangePicker';
 import MessageDropdown from './MessageDropdown';
 import Footer from './Footer';
+import Logo from './Logo';
 import Swal from 'sweetalert2';
 import '../assets/styles/HomePage.css';
 
 export default function HomePage({ switchToLogin, switchToRegister, switchToUpload, onDocumentClick }) {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +31,7 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
   
   // Get user info from localStorage
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('edura_token'));
@@ -54,21 +58,25 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
   }, []);
 
   useEffect(() => {
-    // Đọc categoryId và search từ URL query params
-    const urlParams = new URLSearchParams(window.location.search);
-    const categoryIdFromUrl = urlParams.get('categoryId');
-    const searchFromUrl = urlParams.get('search');
-    
-    if (categoryIdFromUrl) {
-      setFilters(prev => ({ ...prev, categoryId: categoryIdFromUrl }));
-    }
-    
-    if (searchFromUrl) {
-      setSearchQuery(searchFromUrl);
-    }
-    
+    const urlParams = new URLSearchParams(location.search);
+    const categoryIdFromUrl = urlParams.get('categoryId') || '';
+    const searchFromUrl = urlParams.get('search') || '';
+    const categoryNameFromUrl = urlParams.get('categoryName') || '';
+
+    setFilters(prev => {
+      if ((prev.categoryId || '') === categoryIdFromUrl) {
+        return prev;
+      }
+      return { ...prev, categoryId: categoryIdFromUrl };
+    });
+
+    setSearchQuery(prev => (prev === searchFromUrl ? prev : searchFromUrl));
+    setSelectedCategoryName(categoryNameFromUrl);
+    setCurrentPage(1);
+  }, [location.search]);
+
+  useEffect(() => {
     loadFilters();
-    loadDocuments();
   }, []);
 
   useEffect(() => {
@@ -100,6 +108,20 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
       console.error('Error loading filters:', error);
     }
   };
+
+  useEffect(() => {
+    if (!filters.categoryId) {
+      setSelectedCategoryName('');
+      return;
+    }
+
+    const matched = categories.find(
+      (cat) => (cat._id || cat.id) === filters.categoryId
+    );
+    if (matched?.name) {
+      setSelectedCategoryName(matched.name);
+    }
+  }, [filters.categoryId, categories]);
 
   const loadDocuments = async () => {
     setIsLoading(true);
@@ -157,6 +179,7 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
       categoryId: ''
     });
     setSearchQuery('');
+    setSelectedCategoryName('');
     setCurrentPage(1); // Reset về trang 1 khi clear filters
   };
 
@@ -322,16 +345,11 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
           >
             <Menu size={24} />
           </button>
-          <div 
-            className="logo-section" 
+          <Logo 
             onClick={() => window.location.href = '/'}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
-            <span className="brand-text">Edura</span>
-          </div>
+            showText={false}
+            size="default"
+          />
         </div>
 
         <div className="header-center">
@@ -363,7 +381,11 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
           {isLoggedIn ? (
             <>
               <MessageDropdown />
-              <span className="user-email-header">
+              <span 
+                className="user-email-header"
+                onClick={() => window.location.href = '/profile'}
+                style={{ cursor: 'pointer' }}
+              >
                 {user.fullName || user.username || 'Người dùng'}
               </span>
               <button 
@@ -443,6 +465,20 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
               </option>
             ))}
           </select>
+
+          {selectedCategoryName && filters.categoryId && (
+            <div className="active-category-pill">
+              <span>Ngành: <strong>{selectedCategoryName}</strong></span>
+              <button
+                type="button"
+                className="pill-clear-btn"
+                aria-label="Bỏ lọc ngành"
+                onClick={() => handleFilterChange('categoryId', '')}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
           <button className="clear-filters-btn" onClick={clearAllFilters}>
             Xóa tất cả

@@ -51,6 +51,15 @@
   font-size: 20px;
 }
 
+.footer-brand .logo-section {
+  margin-bottom: 12px;
+}
+
+.footer-brand .logo-image {
+  width: 112px;
+  height: 112px;
+}
+
 .footer-socials {
   display: flex;
   gap: 12px;

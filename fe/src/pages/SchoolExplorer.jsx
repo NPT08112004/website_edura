@@ -4,6 +4,7 @@ import { Building2, Search, ArrowRight, Loader, Globe, Menu, Sparkles, TrendingU
 import { getPopularSchools, searchSchools } from "../api";
 import MessageDropdown from "../components/MessageDropdown";
 import Sidebar from "../components/Sidebar";
+import Logo from "../components/Logo";
 import "../assets/styles/SchoolExplorer.css";
 
 export default function SchoolExplorer() {
@@ -142,16 +143,11 @@ export default function SchoolExplorer() {
           >
             <Menu size={24} />
           </button>
-          <div
-            className="logo-section"
+          <Logo 
             onClick={() => navigate("/")}
-            style={{ cursor: "pointer" }}
-          >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
-            <span className="brand-text">Edura</span>
-          </div>
+            showText={false}
+            size="default"
+          />
         </div>
         <div className="header-center"></div>
         <div className="header-right">
@@ -162,7 +158,11 @@ export default function SchoolExplorer() {
           {isLoggedIn ? (
             <>
               <MessageDropdown />
-              <span className="user-email-header">
+              <span 
+                className="user-email-header"
+                onClick={() => navigate('/profile')}
+                style={{ cursor: 'pointer' }}
+              >
                 {user.fullName || user.username || "Người dùng"}
               </span>
               <button

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, ArrowUp } from 'lucide-react';
+import Logo from './Logo';
 import '../assets/styles/Footer.css';
 
 const socialLinks = [
@@ -47,9 +48,7 @@ export default function Footer() {
       <div className="footer-container">
         <div className="footer-columns">
           <div className="footer-brand">
-            <div className="logo-badge footer-logo">
-              <span className="logo-number">87</span>
-            </div>
+            <Logo showText={false} size="default" />
             <h3>Edura</h3>
             <p>
               Nền tảng chia sẻ tài liệu học tập cho sinh viên. Tìm kiếm, chia sẻ và học tập cùng cộng đồng.

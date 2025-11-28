@@ -18,7 +18,8 @@ import {
   Download
 } from 'lucide-react';
 import MessageDropdown from './MessageDropdown';
-import { getInitials, hasValidAvatar } from '../utils/avatarUtils';
+import Logo from './Logo';
+import { getInitials, hasValidAvatar, getAvatarUrl } from '../utils/avatarUtils';
 import '../assets/styles/AdminDocumentPage.css';
 
 export default function AdminDocumentPage() {
@@ -29,7 +30,6 @@ export default function AdminDocumentPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [schools, setSchools] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [avatarFailed, setAvatarFailed] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalDocuments, setTotalDocuments] = useState(0);
   const itemsPerPage = 50; // Số items mỗi trang cho admin
@@ -43,10 +43,9 @@ export default function AdminDocumentPage() {
   const isAdmin = me?.role === 'admin';
 
   const avatarUrl = me?.avatarUrl;
-  const hasAvatar = hasValidAvatar(avatarUrl);
+  const displayAvatarUrl = getAvatarUrl(avatarUrl);
   const avatarInitials = getInitials(me?.fullName, me?.username);
   const avatarAlt = me?.fullName || me?.username || 'Người dùng';
-  const showInitials = !hasAvatar || avatarFailed;
 
   useEffect(() => {
     if (!isLoggedIn) return (window.location.href = '/');
@@ -293,11 +292,9 @@ export default function AdminDocumentPage() {
           <div 
             className="logo-section"
             onClick={() => window.location.href = '/'}
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}
           >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
+            <Logo showText={false} size="default" />
             <div>
               <h1 className="logo">Edura Admin</h1>
               <p className="logo-subtitle">Quản lý tài liệu</p>
@@ -308,16 +305,18 @@ export default function AdminDocumentPage() {
           <MessageDropdown />
           <div className="user-info">
             <div className="user-avatar">
-              {hasAvatar && !avatarFailed ? (
-                <img
-                  src={avatarUrl}
-                  alt={avatarAlt}
-                  onError={() => setAvatarFailed(true)}
-                />
-              ) : null}
-              {showInitials && (
-                <span className="user-avatar-initials">{avatarInitials}</span>
-              )}
+              <img
+                src={displayAvatarUrl}
+                alt={avatarAlt}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  const placeholder = e.target.parentElement.querySelector('.user-avatar-initials');
+                  if (placeholder) {
+                    placeholder.style.display = 'flex';
+                  }
+                }}
+              />
+              <span className="user-avatar-initials" style={{ display: 'none' }}>{avatarInitials}</span>
             </div>
             <div className="user-details">
               <span className="user-name">{me.username || 'Admin'}</span>

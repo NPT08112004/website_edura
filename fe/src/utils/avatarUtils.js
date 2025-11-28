@@ -23,6 +23,19 @@ export function getInitials(fullName, username) {
  * @returns {boolean}
  */
 export function hasValidAvatar(avatarUrl) {
-  return avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== '/images/default-avatar.png';
+  const defaultAvatarPath = '/images/png-clipart-user-computer-icons-avatar-miscellaneous-heroes.png';
+  return avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== defaultAvatarPath && avatarUrl !== '/images/default-avatar.png';
+}
+
+/**
+ * Lấy avatar URL, nếu không có thì trả về avatar mặc định
+ * @param {string} avatarUrl - URL của avatar
+ * @returns {string}
+ */
+export function getAvatarUrl(avatarUrl) {
+  const defaultAvatarPath = '/images/png-clipart-user-computer-icons-avatar-miscellaneous-heroes.png';
+  return avatarUrl && avatarUrl.trim() !== '' && avatarUrl !== '/images/default-avatar.png' 
+    ? avatarUrl 
+    : defaultAvatarPath;
 }
 

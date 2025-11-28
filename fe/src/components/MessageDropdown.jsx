@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getChatConversations } from '../api';
-import { getInitials, hasValidAvatar } from '../utils/avatarUtils';
+import { getInitials, hasValidAvatar, getAvatarUrl } from '../utils/avatarUtils';
 import '../assets/styles/MessageDropdown.css';
 
 export default function MessageDropdown() {
@@ -132,21 +132,20 @@ export default function MessageDropdown() {
                       onClick={() => handleConversationClick(conversation)}
                     >
                       <div className="message-avatar">
-                        {hasValidAvatar(partner?.avatarUrl) ? (
-                          <img 
-                            src={partner.avatarUrl} 
-                            alt={partner.fullName || partner.username}
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextElementSibling?.classList.add('show');
-                            }}
-                          />
-                        ) : null}
-                        {!hasValidAvatar(partner?.avatarUrl) && (
-                          <div className="message-avatar-placeholder show">
-                            {getInitials(partner?.fullName, partner?.username)}
-                          </div>
-                        )}
+                        <img 
+                          src={getAvatarUrl(partner?.avatarUrl)} 
+                          alt={partner.fullName || partner.username}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            const placeholder = e.target.parentElement.querySelector('.message-avatar-placeholder');
+                            if (placeholder) {
+                              placeholder.classList.add('show');
+                            }
+                          }}
+                        />
+                        <div className="message-avatar-placeholder" style={{ display: 'none' }}>
+                          {getInitials(partner?.fullName, partner?.username)}
+                        </div>
                       </div>
                       <div className="message-info">
                         <div className="message-header">

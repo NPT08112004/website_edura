@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ChevronRight, Upload, Settings } from 'lucide-react';
-import { getInitials, hasValidAvatar } from '../utils/avatarUtils';
+import { getInitials, hasValidAvatar, getAvatarUrl } from '../utils/avatarUtils';
 import '../assets/styles/Sidebar.css';
 
 export default function Sidebar({ isOpen, onClose, onUploadClick, onAdminClick }) {
@@ -38,9 +38,7 @@ export default function Sidebar({ isOpen, onClose, onUploadClick, onAdminClick }
     { key: 'about', label: 'Edura là gì?', hasArrow: false },
     { key: 'quiz', label: 'Trắc nghiệm', hasArrow: false, href: '/quizzes' },
     { key: 'messages', label: 'Nhắn tin', hasArrow: false, href: '/message' },
-    { key: 'culture', label: 'Văn hoá', hasArrow: true },
-    { key: 'entertainment', label: 'Giải trí và thủ công', hasArrow: true },
-    { key: 'personal', label: 'Phát triển cá nhân', hasArrow: true },
+    { key: 'schools', label: 'Trường', hasArrow: false, href: '/schools' },
     { key: 'all', label: 'Tất cả tài liệu', hasArrow: false }
   ];
 
@@ -58,21 +56,20 @@ export default function Sidebar({ isOpen, onClose, onUploadClick, onAdminClick }
             style={{ cursor: 'pointer' }}
           >
             <div className="user-avatar">
-              {hasAvatar ? (
                 <img 
-                  src={userAvatar} 
+                src={getAvatarUrl(userAvatar)} 
                   alt="Avatar" 
                   onError={(e) => { 
                     e.target.style.display = 'none';
-                    e.target.nextElementSibling?.classList.add('show');
+                  const placeholder = e.target.parentElement.querySelector('.user-avatar-placeholder');
+                  if (placeholder) {
+                    placeholder.classList.add('show');
+                  }
                   }} 
                 />
-              ) : null}
-              {!hasAvatar && (
-                <div className="user-avatar-placeholder show">
+              <div className="user-avatar-placeholder" style={{ display: 'none' }}>
                   {userInitials}
                 </div>
-              )}
             </div>
             <span className="user-name">{userName}</span>
           </div>

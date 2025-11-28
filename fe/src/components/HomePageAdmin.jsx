@@ -4,6 +4,7 @@ import { getDocuments, getSchools, getCategories } from '../api';
 import Sidebar from './Sidebar';
 import MessageDropdown from './MessageDropdown';
 import DateRangePicker from './DateRangePicker';
+import Logo from './Logo';
 import Swal from 'sweetalert2';
 import '../assets/styles/HomePage.css';
 import Footer from './Footer';
@@ -309,16 +310,11 @@ export default function HomePageAdmin({ switchToLogin, switchToRegister, switchT
           >
             <Menu size={24} />
           </button>
-          <div 
-            className="logo-section" 
+          <Logo 
             onClick={() => window.location.href = '/'}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
-            <span className="brand-text">Edura</span>
-          </div>
+            showText={false}
+            size="default"
+          />
         </div>
 
         <div className="header-center">
@@ -350,7 +346,11 @@ export default function HomePageAdmin({ switchToLogin, switchToRegister, switchT
           {isLoggedIn ? (
             <>
               <MessageDropdown />
-              <span className="user-email-header">
+              <span 
+                className="user-email-header"
+                onClick={() => window.location.href = '/profile'}
+                style={{ cursor: 'pointer' }}
+              >
                 {user.fullName || user.username || 'Người dùng'}
               </span>
               <button 

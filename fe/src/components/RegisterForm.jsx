@@ -100,7 +100,6 @@ export default function RegisterForm({ switchToLogin, switchToHome, bgImage, log
                 <span className="logo-number">87</span>
               </div>
             )}
-            <span className="brand-text">Edura</span>
           </div>
           <span className="page-title">Đăng ký</span>
         </div>
@@ -122,7 +121,6 @@ export default function RegisterForm({ switchToLogin, switchToHome, bgImage, log
                 <span className="card-logo-number">87</span>
               </div>
             )}
-            <span className="card-brand-text">Edura</span>
           </div>
 
           {/* Form */}

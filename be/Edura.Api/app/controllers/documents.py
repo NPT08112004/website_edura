@@ -25,6 +25,7 @@ from PIL import Image, ImageDraw, ImageFont
 import boto3
 from urllib.parse import urlparse
 from datetime import datetime, timedelta, date
+import unicodedata
 
 from app.services.aws_service import aws_service
 from app.services.ai_service import ai_service
@@ -48,6 +49,15 @@ USE_AI = os.getenv("USE_AI", "true").lower() == "true"
 
 
 # ===================== Helpers =====================
+
+def _strip_vn(s: str) -> str:
+    """Bỏ dấu tiếng Việt + lower-case (để tìm kiếm không dấu)."""
+    if not s:
+        return ""
+    s = s.lower()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    return s.replace("đ", "d")
 
 def _allowed_ext(filename: str, allow: set[str]) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allow
@@ -918,8 +928,12 @@ def get_documents():
         
         skip = (page - 1) * limit
 
+        # Chuẩn hóa search query (bỏ dấu) để tìm kiếm không dấu
+        search_normalized = _strip_vn(search) if search else ""
+
         query_or = []
         if search:
+            # Vẫn dùng regex để lọc sơ bộ (nhanh hơn)
             query_or = [
                 {"title": {"$regex": search, "$options": "i"}},
                 {"summary": {"$regex": search, "$options": "i"}},
@@ -1003,17 +1017,13 @@ def get_documents():
             if date_filter:
                 ands.append({"$or": [{"createdAt": date_filter}, {"created_at": date_filter}]})
 
-        # Build mongo query
+        # Build mongo query (chỉ dùng filters, không dùng search regex nếu cần tìm không dấu)
         mongo_query = {}
-        if query_or:
-            mongo_query["$or"] = query_or
         if ands:
-            if "$or" in mongo_query:
-                mongo_query = {"$and": [{"$or": mongo_query["$or"]}] + ands}
-            else:
-                mongo_query = {"$and": ands}
+            mongo_query = {"$and": ands}
 
-        # Query & sort với pagination
+        # Query tất cả documents (hoặc với filters) để có thể lọc bằng cách bỏ dấu
+        # Nếu có search, sẽ lọc sau ở Python
         try:
             cursor = mongo_collections.documents.find(mongo_query).sort("createdAt", -1)
         except Exception:
@@ -1022,16 +1032,30 @@ def get_documents():
             except Exception:
                 cursor = mongo_collections.documents.find(mongo_query)
 
-        # Lấy tổng số documents (luôn tính để frontend có thể hiển thị đúng)
-        total_count = None
-        try:
-            # Sử dụng count_documents thay vì cursor.count() (deprecated)
-            total_count = mongo_collections.documents.count_documents(mongo_query)
-        except Exception:
-            pass
+        # Nếu có search, lọc bằng cách bỏ dấu trước khi paginate
+        all_docs = list(cursor)
+        if search_normalized:
+            filtered_docs = []
+            for doc in all_docs:
+                title = doc.get("title", "")
+                summary = doc.get("summary", "") or ""
+                keywords = doc.get("keywords", []) or []
+                keywords_str = " ".join([str(k) for k in keywords])
+                
+                # Tạo blob text để tìm kiếm
+                blob = f"{title} {keywords_str} {summary}"
+                blob_normalized = _strip_vn(blob)
+                
+                # Kiểm tra nếu search query (đã bỏ dấu) có trong blob (đã bỏ dấu)
+                if search_normalized in blob_normalized:
+                    filtered_docs.append(doc)
+            all_docs = filtered_docs
+
+        # Lấy tổng số documents sau khi lọc
+        total_count = len(all_docs)
         
         # Apply pagination
-        docs = list(cursor.skip(skip).limit(limit))
+        docs = all_docs[skip:skip + limit]
 
         # Chuẩn bị map thống kê phản ứng/bình luận
         doc_ids = [doc.get("_id") for doc in docs if doc.get("_id")]
