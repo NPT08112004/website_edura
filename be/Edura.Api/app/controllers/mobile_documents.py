@@ -1,24 +1,21 @@
 from flask import Blueprint, jsonify, request, current_app
 from bson import ObjectId
 from app.services.mongo_service import mongo_collections
+from app.utils.search_utils import normalize_search, search_in_multiple_fields
 import os
 import jwt
-from bson import ObjectId
 from datetime import datetime
-import unicodedata
 
 # =========================================================
 # Helpers
 # =========================================================
 
+# Đã chuyển sang app.utils.search_utils
+# Giữ lại strip_vn để tương thích ngược (nếu có code khác dùng)
 def strip_vn(s: str) -> str:
     """Bỏ dấu tiếng Việt + lower-case (không phụ thuộc phiên bản Mongo)."""
-    if not s:
-        return ""
-    s = s.lower()
-    s = unicodedata.normalize("NFD", s)
-    s = "".join(ch for ch in s if not unicodedata.combining(ch))
-    return s.replace("đ", "d")
+    from app.utils.search_utils import strip_vn as _strip_vn_util
+    return _strip_vn_util(s)
 
 def _to_oid(val):
     if val is None or val == "":
@@ -108,7 +105,7 @@ def list_documents():
         limit = max(int(request.args.get("limit", 10)), 1)
 
         search = (request.args.get("search") or "").strip()
-        search_norm = strip_vn(search) # <-- Chuỗi tìm kiếm đã bỏ dấu
+        search_norm = normalize_search(search)  # Bỏ dấu + bỏ khoảng trắng
         
         category_id = request.args.get("categoryId")
         school_id = request.args.get("schoolId")
@@ -152,19 +149,17 @@ def list_documents():
             .sort([("createdAt", -1), ("created_at", -1)])
         )
 
-        # 2) Lọc theo q KHÔNG DẤU ở Python
+        # 2) Lọc theo search KHÔNG DẤU + KHÔNG KHOẢNG TRẮNG ở Python
+        # Cho phép tìm: "ky thuat", "kythuat", "kỹ thuật" đều match
         if search_norm:
             filtered_docs = []
             for d in all_docs:
-                title = d.get("title", "")
+                title = d.get("title", "") or ""
                 keywords = d.get("keywords", []) or []
                 summary = d.get("summary", "") or ""
                 
-                # Tạo một blob chứa tất cả nội dung cần tìm kiếm
-                blob = f"{title} {' '.join([str(k) for k in keywords])} {summary}"
-                
-                # So sánh chuỗi không dấu của query với chuỗi không dấu của blob
-                if search_norm in strip_vn(blob):
+                # Sử dụng hàm helper để tìm trong nhiều fields
+                if search_in_multiple_fields(search, title, keywords, summary):
                     filtered_docs.append(d)
         else:
             filtered_docs = all_docs

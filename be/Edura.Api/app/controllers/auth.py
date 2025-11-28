@@ -447,71 +447,128 @@ def forgot_password():
       400:
         description: Thiếu email hoặc email không hợp lệ.
     """
-    data = request.get_json()
-    email = data.get('email')
+    import traceback
     
-    if not email or not email.strip():
-        return jsonify({"error": "Vui lòng nhập email."}), 400
-    
-    email = email.strip().lower()
-    
-    # Kiểm tra định dạng email
-    email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
-    if not re.match(email_pattern, email):
-        return jsonify({"error": "Email không hợp lệ."}), 400
-    
-    # Tìm user theo username (vì username chính là email trong hệ thống)
-    user_doc = mongo_collections.users.find_one({"username": email})
-    
-    if not user_doc:
-        # Không tiết lộ email có tồn tại hay không (bảo mật)
+    try:
+        # Kiểm tra request có data không
+        if not request.is_json:
+            return jsonify({"error": "Request phải là JSON."}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Thiếu dữ liệu trong request."}), 400
+        
+        email = data.get('email')
+        
+        if not email or not email.strip():
+            return jsonify({"error": "Vui lòng nhập email."}), 400
+        
+        email = email.strip().lower()
+        
+        # Kiểm tra định dạng email
+        email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_pattern, email):
+            return jsonify({"error": "Email không hợp lệ."}), 400
+        
+        # Tìm user theo username (vì username chính là email trong hệ thống)
+        try:
+            user_doc = mongo_collections.users.find_one({"username": email})
+        except Exception as e:
+            print(f"❌ Lỗi khi query MongoDB users: {str(e)}")
+            traceback.print_exc()
+            return jsonify({"error": "Lỗi kết nối database."}), 500
+        
+        if not user_doc:
+            # Không tiết lộ email có tồn tại hay không (bảo mật)
+            return jsonify({
+                "message": "Nếu email tồn tại trong hệ thống, mã xác thực đã được gửi."
+            }), 200
+        
+        # Lấy email từ username (username chính là email)
+        user_email = user_doc.get("username")
+        
+        if not user_email:
+            return jsonify({
+                "error": "Không tìm thấy email trong tài khoản."
+            }), 400
+        
+        # Tạo mã xác thực 6 chữ số
+        verification_code = str(random.randint(100000, 999999))
+        
+        # Lưu mã vào database với thời gian hết hạn (10 phút)
+        reset_code_doc = {
+            "email": user_email,
+            "code": verification_code,
+            "userId": user_doc["_id"],
+            "username": user_doc.get("username"),  # Lưu thêm username để dễ tìm
+            "createdAt": datetime.datetime.utcnow(),
+            "used": False
+        }
+        
+        # Xóa các mã cũ của email này (nếu có)
+        try:
+            mongo_collections.password_reset_codes.delete_many({
+                "email": user_email,
+                "used": False
+            })
+        except Exception as e:
+            print(f"❌ Lỗi khi xóa mã reset cũ: {str(e)}")
+            traceback.print_exc()
+            # Tiếp tục, không fail vì có thể không có mã cũ
+        
+        # Lưu mã mới
+        try:
+            mongo_collections.password_reset_codes.insert_one(reset_code_doc)
+        except Exception as e:
+            print(f"❌ Lỗi khi lưu mã reset vào database: {str(e)}")
+            traceback.print_exc()
+            return jsonify({"error": "Không thể lưu mã xác thực. Vui lòng thử lại."}), 500
+        
+        # Gửi email
+        try:
+            email_sent, error_message = send_verification_code_email(user_email, verification_code)
+        except Exception as e:
+            print(f"❌ Lỗi khi gọi send_verification_code_email: {str(e)}")
+            traceback.print_exc()
+            # Trong development, trả về chi tiết lỗi
+            if os.getenv("FLASK_ENV") == "development":
+                return jsonify({
+                    "error": f"Lỗi khi gửi email: {str(e)}",
+                    "traceback": traceback.format_exc()
+                }), 500
+            return jsonify({"error": "Lỗi khi gửi email. Vui lòng thử lại sau."}), 500
+        
+        if not email_sent:
+            # Kiểm tra xem có đang ở debug mode không
+            debug_mode = os.getenv("EMAIL_DEBUG_MODE", "false").lower() == "true"
+            
+            # Trả về thông báo lỗi chi tiết hơn (chỉ trong development)
+            if os.getenv("FLASK_ENV") == "development" or debug_mode:
+                return jsonify({
+                    "error": error_message or "Không thể gửi email. Vui lòng kiểm tra cấu hình email server.",
+                    "debug_info": {
+                        "smtp_server": os.getenv("SMTP_SERVER"),
+                        "smtp_port": os.getenv("SMTP_PORT"),
+                        "smtp_username_set": bool(os.getenv("SMTP_USERNAME")),
+                        "smtp_password_set": bool(os.getenv("SMTP_PASSWORD")),
+                        "email_from": os.getenv("EMAIL_FROM"),
+                        "debug_mode": debug_mode
+                    }
+                }), 500
+            else:
+                return jsonify({
+                    "error": "Không thể gửi email. Vui lòng kiểm tra cấu hình email server."
+                }), 500
+        
         return jsonify({
-            "message": "Nếu email tồn tại trong hệ thống, mã xác thực đã được gửi."
+            "message": "Mã xác thực đã được gửi đến email của bạn."
         }), 200
     
-    # Lấy email từ username (username chính là email)
-    user_email = user_doc.get("username")
-    
-    if not user_email:
-        return jsonify({
-            "error": "Không tìm thấy email trong tài khoản."
-        }), 400
-    
-    # Tạo mã xác thực 6 chữ số
-    verification_code = str(random.randint(100000, 999999))
-    
-    # Lưu mã vào database với thời gian hết hạn (10 phút)
-    reset_code_doc = {
-        "email": user_email,
-        "code": verification_code,
-        "userId": user_doc["_id"],
-        "username": user_doc.get("username"),  # Lưu thêm username để dễ tìm
-        "createdAt": datetime.datetime.utcnow(),
-        "used": False
-    }
-    
-    # Xóa các mã cũ của email này (nếu có)
-    mongo_collections.password_reset_codes.delete_many({
-        "email": user_email,
-        "used": False
-    })
-    
-    # Lưu mã mới
-    mongo_collections.password_reset_codes.insert_one(reset_code_doc)
-    
-    # Gửi email
-    email_sent, error_message = send_verification_code_email(user_email, verification_code)
-    
-    if not email_sent:
-        # Trả về thông báo lỗi chi tiết hơn (chỉ trong development)
-        error_detail = error_message if os.getenv("FLASK_ENV") == "development" else "Không thể gửi email. Vui lòng kiểm tra cấu hình email server."
-        return jsonify({
-            "error": error_detail
-        }), 500
-    
-    return jsonify({
-        "message": "Mã xác thực đã được gửi đến email của bạn."
-    }), 200
+    except Exception as e:
+        print(f"❌ Lỗi không xác định trong forgot_password: {str(e)}")
+        traceback.print_exc()
+        error_msg = str(e) if os.getenv("FLASK_ENV") == "development" else "Đã xảy ra lỗi. Vui lòng thử lại sau."
+        return jsonify({"error": error_msg}), 500
 
 
 @auth_bp.route('/reset-password', methods=['POST'])

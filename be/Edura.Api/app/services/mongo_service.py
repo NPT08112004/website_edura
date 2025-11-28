@@ -105,6 +105,22 @@ class Collections:
                 self.documents.create_index([("createdAt", -1)], name="ix_documents_createdAt")
             if "ix_documents_created_at" not in self.documents.index_information():
                 self.documents.create_index([("created_at", -1)], name="ix_documents_created_at")
+            
+            # Index cho schoolId và categoryId để tối ưu filter trong search
+            if "ix_documents_schoolId" not in self.documents.index_information():
+                self.documents.create_index([("schoolId", 1)], name="ix_documents_schoolId")
+            if "ix_documents_categoryId" not in self.documents.index_information():
+                self.documents.create_index([("categoryId", 1)], name="ix_documents_categoryId")
+            
+            # Compound index cho schoolId + categoryId + createdAt (tối ưu query phổ biến)
+            if not self._has_index_by_fields(self.documents, ["schoolId", "categoryId", "createdAt"]):
+                try:
+                    self.documents.create_index(
+                        [("schoolId", 1), ("categoryId", 1), ("createdAt", -1)],
+                        name="ix_documents_school_category_created"
+                    )
+                except Exception as e:
+                    print(f"Lỗi khi tạo index ix_documents_school_category_created: {e}")
 
             # Index cho chat_messages
             if "ix_chat_messages_conv" not in self.chat_messages.index_information():
