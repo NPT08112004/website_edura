@@ -7,6 +7,7 @@ import datetime
 import os
 import random
 import re
+import logging
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from app.services.mongo_service import mongo_collections
@@ -27,6 +28,28 @@ except (ValueError, TypeError):
 
 if not JWT_KEY:
     raise ValueError("JWT_KEY chưa được cấu hình!")
+
+
+def log_event(message: str, level=logging.INFO):
+    """
+    Ghi log ra stdout (Render sẽ capture) và đồng thời gửi vào Flask logger nếu có.
+    """
+    log_message = f"[AUTH] {message}"
+    try:
+        from flask import current_app
+        logger = current_app.logger
+    except Exception:
+        logger = None
+
+    if logger:
+        if level == logging.ERROR:
+            logger.error(log_message)
+        elif level == logging.WARNING:
+            logger.warning(log_message)
+        else:
+            logger.info(log_message)
+    else:
+        print(log_message)
 
 
 def decode_jwt_strict(token: str):
@@ -528,7 +551,7 @@ def forgot_password():
         try:
             email_sent, error_message = send_verification_code_email(user_email, verification_code)
         except Exception as e:
-            print(f"❌ Lỗi khi gọi send_verification_code_email: {str(e)}")
+            log_event(f"Lỗi khi gửi email xác thực: {str(e)}", logging.ERROR)
             traceback.print_exc()
             # Trong development, trả về chi tiết lỗi
             if os.getenv("FLASK_ENV") == "development":
@@ -539,6 +562,7 @@ def forgot_password():
             return jsonify({"error": "Lỗi khi gửi email. Vui lòng thử lại sau."}), 500
         
         if not email_sent:
+            log_event(f"send_verification_code_email trả về False: {error_message}", logging.ERROR)
             # Kiểm tra xem có đang ở debug mode không
             debug_mode = os.getenv("EMAIL_DEBUG_MODE", "false").lower() == "true"
             
