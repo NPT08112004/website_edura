@@ -4,8 +4,8 @@ from flask import Blueprint, request, jsonify
 from bson import ObjectId
 from app.services.mongo_service import mongo_collections
 from flask import current_app
+from app.utils.search_utils import normalize_search, search_in_multiple_fields
 
-import unicodedata
 import traceback
 import jwt  # pip install pyjwt
 import os
@@ -15,14 +15,7 @@ search_bp = Blueprint("search", __name__, url_prefix="/api/search")
 
 
 # --- Helpers ---------------------------------------------------------------
-def strip_vn(s: str) -> str:
-    """Bỏ dấu tiếng Việt + lower-case (không phụ thuộc phiên bản Mongo)."""
-    if not s:
-        return ""
-    s = s.lower()
-    s = unicodedata.normalize("NFD", s)
-    s = "".join(ch for ch in s if not unicodedata.combining(ch))
-    return s.replace("đ", "d")
+# Đã chuyển sang app.utils.search_utils
 
 def _get_current_user():
     """
@@ -96,7 +89,7 @@ def search_documents():
     """
     try:
         q = (request.args.get("q") or "").strip()
-        q_norm = strip_vn(q)
+        q_norm = normalize_search(q)  # Bỏ dấu + bỏ khoảng trắng
 
         school_id_raw = (request.args.get("schoolId") or "").strip()
         category_id_raw = (request.args.get("categoryId") or "").strip()
@@ -134,15 +127,17 @@ def search_documents():
 
         docs = list(mongo_collections.documents.find(base_match, projection))
 
-        # 2) Lọc theo q KHÔNG DẤU ở Python (ổn định trên mọi version Mongo)
+        # 2) Lọc theo q KHÔNG DẤU + KHÔNG KHOẢNG TRẮNG ở Python
+        # Cho phép tìm: "ky thuat", "kythuat", "kỹ thuật" đều match
         if q_norm:
             filtered = []
             for d in docs:
-                title = d.get("title", "")
+                title = d.get("title", "") or ""
                 keywords = d.get("keywords", []) or []
                 summary = d.get("summary", "") or ""
-                blob = f"{title} {' '.join([str(k) for k in keywords])} {summary}"
-                if q_norm in strip_vn(blob):
+                
+                # Sử dụng hàm helper để tìm trong nhiều fields
+                if search_in_multiple_fields(q, title, keywords, summary):
                     filtered.append(d)
         else:
             filtered = docs

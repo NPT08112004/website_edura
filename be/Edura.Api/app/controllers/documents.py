@@ -31,6 +31,7 @@ from app.services.aws_service import aws_service
 from app.services.ai_service import ai_service
 from app.services.mongo_service import mongo_collections
 from app.models.document import Document
+from app.utils.search_utils import normalize_search, search_in_multiple_fields
 from jwt import ExpiredSignatureError, InvalidTokenError
 from flask import current_app
 from bson import ObjectId
@@ -50,14 +51,12 @@ USE_AI = os.getenv("USE_AI", "true").lower() == "true"
 
 # ===================== Helpers =====================
 
+# Đã chuyển sang app.utils.search_utils
+# Giữ lại _strip_vn để tương thích ngược (nếu có code khác dùng)
 def _strip_vn(s: str) -> str:
     """Bỏ dấu tiếng Việt + lower-case (để tìm kiếm không dấu)."""
-    if not s:
-        return ""
-    s = s.lower()
-    s = unicodedata.normalize("NFD", s)
-    s = "".join(ch for ch in s if not unicodedata.combining(ch))
-    return s.replace("đ", "d")
+    from app.utils.search_utils import strip_vn
+    return strip_vn(s)
 
 def _allowed_ext(filename: str, allow: set[str]) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allow
@@ -928,8 +927,9 @@ def get_documents():
         
         skip = (page - 1) * limit
 
-        # Chuẩn hóa search query (bỏ dấu) để tìm kiếm không dấu
-        search_normalized = _strip_vn(search) if search else ""
+        # Chuẩn hóa search query (bỏ dấu + bỏ khoảng trắng) để tìm kiếm linh hoạt
+        # Cho phép: "ky thuat", "kythuat", "kỹ thuật" đều match
+        search_normalized = normalize_search(search) if search else ""
 
         query_or = []
         if search:
@@ -1032,22 +1032,18 @@ def get_documents():
             except Exception:
                 cursor = mongo_collections.documents.find(mongo_query)
 
-        # Nếu có search, lọc bằng cách bỏ dấu trước khi paginate
+        # Nếu có search, lọc bằng cách bỏ dấu + bỏ khoảng trắng trước khi paginate
+        # Cho phép tìm: "ky thuat", "kythuat", "kỹ thuật" đều match
         all_docs = list(cursor)
         if search_normalized:
             filtered_docs = []
             for doc in all_docs:
-                title = doc.get("title", "")
+                title = doc.get("title", "") or ""
                 summary = doc.get("summary", "") or ""
                 keywords = doc.get("keywords", []) or []
-                keywords_str = " ".join([str(k) for k in keywords])
                 
-                # Tạo blob text để tìm kiếm
-                blob = f"{title} {keywords_str} {summary}"
-                blob_normalized = _strip_vn(blob)
-                
-                # Kiểm tra nếu search query (đã bỏ dấu) có trong blob (đã bỏ dấu)
-                if search_normalized in blob_normalized:
+                # Sử dụng hàm helper để tìm trong nhiều fields
+                if search_in_multiple_fields(search, title, keywords, summary):
                     filtered_docs.append(doc)
             all_docs = filtered_docs
 
