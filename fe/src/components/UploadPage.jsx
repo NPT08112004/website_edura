@@ -188,55 +188,27 @@ export default function UploadPage({ onBack, switchToLogin }) {
       clearInterval(progressInterval);
       setUploadProgress(100);
 
+      const uploadedId = result?.documentId || result?._id || result?.id;
+      const viewUrl = uploadedId ? `/document/${uploadedId}` : '/home';
+
       Swal.fire({
         icon: 'success',
-        title: 'Tải lên thành công! 🎉',
+        title: 'Tài liệu đã được tải lên!',
         html: `
-          <div style="text-align: center; padding: 10px 0;">
-            <p style="font-size: 18px; color: #1e3a8a; margin-bottom: 20px; font-weight: 600;">
-              Tài liệu của bạn đã được tải lên thành công!
-            </p>
-            <div style="background: #f0f9ff; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: left; border: 1px solid #bfdbfe;">
-              <p style="margin: 10px 0; color: #1e40af; font-size: 16px;">
-                <strong>📄 Tài liệu:</strong> ${title}
-              </p>
-              ${result.summary ? `
-                <p style="margin: 12px 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                  <strong>📝 Tóm tắt:</strong> ${result.summary.length > 120 ? result.summary.substring(0, 120) + '...' : result.summary}
-                </p>
-              ` : ''}
-              ${result.keywords && Array.isArray(result.keywords) && result.keywords.length > 0 ? `
-                <p style="margin: 12px 0; color: #475569; font-size: 14px;">
-                  <strong>🔑 Từ khóa:</strong> 
-                  <span style="display: inline-block; margin-top: 4px;">
-                    ${result.keywords.slice(0, 5).map(k => `<span style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; margin-right: 4px; display: inline-block; margin-top: 4px;">${k}</span>`).join('')}
-                    ${result.keywords.length > 5 ? `<span style="color: #64748b;">+${result.keywords.length - 5} khác</span>` : ''}
-                  </span>
-                </p>
-              ` : ''}
-            </div>
-            <div style="background: #fef3c7; border-radius: 8px; padding: 12px; margin: 16px 0;">
-              <p style="font-size: 15px; color: #92400e; margin: 0;">
-                ✨ Bạn đã nhận được <strong style="color: #d97706;">+1 điểm</strong> cho đóng góp này!
-              </p>
-            </div>
-            <p style="font-size: 13px; color: #64748b; margin-top: 12px;">
-              Tài liệu của bạn sẽ được kiểm duyệt và hiển thị công khai sau khi được phê duyệt.
-            </p>
+          <div style="text-align:left;line-height:1.6">
+            <p><b>Tiêu đề:</b> ${title}</p>
+            <p>Hệ thống đang xử lý tài liệu của bạn (tạo bản xem trước, tóm tắt...). Bạn có thể tiếp tục tải thêm tài liệu hoặc mở trang chi tiết để kiểm tra.</p>
+            ${uploadedId ? `<p style="margin-top:8px"><a href="${viewUrl}" target="_blank" rel="noreferrer">Mở trang tài liệu ›</a></p>` : ''}
           </div>
         `,
-        confirmButtonText: 'Về trang chủ',
+        confirmButtonText: uploadedId ? 'Xem tài liệu' : 'Về trang chủ',
+        cancelButtonText: 'Tải thêm',
         showCancelButton: true,
-        cancelButtonText: 'Tải thêm tài liệu',
-        cancelButtonColor: '#6c757d',
-        confirmButtonColor: '#2563eb',
-        width: '550px'
-      }).then((result) => {
-        // Nếu bấm "Về trang chủ" (confirm) thì chuyển hướng về trang chủ
-        if (result.isConfirmed) {
-          window.location.href = '/';
+        reverseButtons: true
+      }).then((dialogResult) => {
+        if (dialogResult.isConfirmed) {
+          window.location.href = viewUrl;
         }
-        // Nếu bấm "Tải thêm tài liệu" (cancel) thì ở lại trang upload
       });
 
       // Reset form

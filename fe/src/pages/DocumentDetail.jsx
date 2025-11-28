@@ -13,6 +13,7 @@ import {
   postDocumentComment,
 } from "../api";
 import PdfViewer from "../components/PdfViewer";
+import Logo from "../components/Logo";
 import { getInitials } from "../utils/avatarUtils";
 import "../assets/styles/DocumentDetail.css";
 
@@ -363,6 +364,19 @@ export default function DocumentDetail() {
 
   return (
     <div className="document-detail">
+      <header className="document-detail__header">
+        <Logo
+          onClick={() => navigate("/")}
+          showText={false}
+          size="small"
+        />
+        <button
+          className="document-detail__header-link"
+          onClick={() => navigate(-1)}
+        >
+          ← Quay lại
+        </button>
+      </header>
       <div className="document-detail__layout">
         <aside className="document-detail__sidebar">
           <Link className="document-detail__back" to="/search">

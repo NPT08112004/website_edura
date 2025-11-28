@@ -1,7 +1,40 @@
 .document-detail {
   min-height: 100vh;
   background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 45%, #ffffff 100%);
-  padding: 32px 0 60px;
+  padding: 120px 0 60px;
+  position: relative;
+}
+
+.document-detail__header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  backdrop-filter: blur(14px);
+  z-index: 40;
+}
+
+.document-detail__header-link {
+  border: 1px solid rgba(37, 99, 235, 0.4);
+  background: transparent;
+  color: #2563eb;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.document-detail__header-link:hover {
+  background: rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -15px rgba(37, 99, 235, 0.8);
 }
 
 .document-detail__loading {
