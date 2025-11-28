@@ -92,13 +92,35 @@ function UploadButton({ isOpen, onClose, onUploadSuccess }) {
       const result = await uploadDocument(file, title, schoolId, categoryId, image);
       Swal.fire({
         icon: 'success',
-        title: 'Thành công',
+        title: 'Tải lên thành công! 🎉',
         html: `
-          <div><b>Đã lưu S3 (PDF):</b> <a href="${result.s3_url}" target="_blank" rel="noreferrer">Mở file</a></div>
-          ${result.image_url ? `<div style="margin-top:6px"><b>Ảnh:</b> <a href="${result.image_url}" target="_blank" rel="noreferrer">Xem ảnh</a></div>` : ''}
-          <div style="margin-top:8px"><b>Tóm tắt:</b> ${result.summary}</div>
-          <div style="margin-top:8px"><b>Keywords:</b> ${Array.isArray(result.keywords) ? result.keywords.join(', ') : ''}</div>
-        `
+          <div style="text-align: center; padding: 10px 0;">
+            <p style="font-size: 16px; color: #1e3a8a; margin-bottom: 16px; font-weight: 600;">
+              Tài liệu của bạn đã được tải lên thành công!
+            </p>
+            <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: left;">
+              <p style="margin: 8px 0; color: #1e40af;">
+                <strong>📄 Tài liệu:</strong> ${title}
+              </p>
+              ${result.summary ? `
+                <p style="margin: 8px 0; color: #475569; font-size: 14px;">
+                  <strong>Tóm tắt:</strong> ${result.summary.length > 100 ? result.summary.substring(0, 100) + '...' : result.summary}
+                </p>
+              ` : ''}
+              ${result.keywords && Array.isArray(result.keywords) && result.keywords.length > 0 ? `
+                <p style="margin: 8px 0; color: #475569; font-size: 14px;">
+                  <strong>🔑 Từ khóa:</strong> ${result.keywords.slice(0, 5).join(', ')}${result.keywords.length > 5 ? '...' : ''}
+                </p>
+              ` : ''}
+            </div>
+            <p style="font-size: 14px; color: #64748b; margin-top: 12px;">
+              ✨ Bạn đã nhận được <strong style="color: #2563eb;">+1 điểm</strong> cho đóng góp này!
+            </p>
+          </div>
+        `,
+        confirmButtonText: 'Tuyệt vời!',
+        confirmButtonColor: '#2563eb',
+        width: '500px'
       });
       
       // Reset form

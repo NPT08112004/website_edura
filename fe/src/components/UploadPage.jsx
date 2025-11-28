@@ -190,25 +190,53 @@ export default function UploadPage({ onBack, switchToLogin }) {
 
       Swal.fire({
         icon: 'success',
-        title: 'Thành công!',
+        title: 'Tải lên thành công! 🎉',
         html: `
-          <div style="text-align: left;">
-            <p><b>Đã lưu S3 (PDF):</b> <a href="${result.s3_url}" target="_blank" rel="noreferrer">Mở file</a></p>
-            ${result.image_url ? `<p style="margin-top:8px"><b>Ảnh:</b> <a href="${result.image_url}" target="_blank" rel="noreferrer">Xem ảnh</a></p>` : ''}
-            <p style="margin-top:8px"><b>Tóm tắt:</b> ${result.summary}</p>
-            ${result.keywords && Array.isArray(result.keywords) ? `<p style="margin-top:8px"><b>Keywords:</b> ${result.keywords.join(', ')}</p>` : ''}
+          <div style="text-align: center; padding: 10px 0;">
+            <p style="font-size: 18px; color: #1e3a8a; margin-bottom: 20px; font-weight: 600;">
+              Tài liệu của bạn đã được tải lên thành công!
+            </p>
+            <div style="background: #f0f9ff; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: left; border: 1px solid #bfdbfe;">
+              <p style="margin: 10px 0; color: #1e40af; font-size: 16px;">
+                <strong>📄 Tài liệu:</strong> ${title}
+              </p>
+              ${result.summary ? `
+                <p style="margin: 12px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                  <strong>📝 Tóm tắt:</strong> ${result.summary.length > 120 ? result.summary.substring(0, 120) + '...' : result.summary}
+                </p>
+              ` : ''}
+              ${result.keywords && Array.isArray(result.keywords) && result.keywords.length > 0 ? `
+                <p style="margin: 12px 0; color: #475569; font-size: 14px;">
+                  <strong>🔑 Từ khóa:</strong> 
+                  <span style="display: inline-block; margin-top: 4px;">
+                    ${result.keywords.slice(0, 5).map(k => `<span style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; margin-right: 4px; display: inline-block; margin-top: 4px;">${k}</span>`).join('')}
+                    ${result.keywords.length > 5 ? `<span style="color: #64748b;">+${result.keywords.length - 5} khác</span>` : ''}
+                  </span>
+                </p>
+              ` : ''}
+            </div>
+            <div style="background: #fef3c7; border-radius: 8px; padding: 12px; margin: 16px 0;">
+              <p style="font-size: 15px; color: #92400e; margin: 0;">
+                ✨ Bạn đã nhận được <strong style="color: #d97706;">+1 điểm</strong> cho đóng góp này!
+              </p>
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-top: 12px;">
+              Tài liệu của bạn sẽ được kiểm duyệt và hiển thị công khai sau khi được phê duyệt.
+            </p>
           </div>
         `,
-        confirmButtonText: 'Đóng',
+        confirmButtonText: 'Về trang chủ',
         showCancelButton: true,
-        cancelButtonText: 'Ở lại trang',
-        cancelButtonColor: '#6c757d'
+        cancelButtonText: 'Tải thêm tài liệu',
+        cancelButtonColor: '#6c757d',
+        confirmButtonColor: '#2563eb',
+        width: '550px'
       }).then((result) => {
-        // Nếu bấm "Đóng" (confirm) thì chuyển hướng về trang chủ
+        // Nếu bấm "Về trang chủ" (confirm) thì chuyển hướng về trang chủ
         if (result.isConfirmed) {
           window.location.href = '/';
         }
-        // Nếu bấm "Ở lại trang" (cancel) thì không làm gì, ở lại trang upload
+        // Nếu bấm "Tải thêm tài liệu" (cancel) thì ở lại trang upload
       });
 
       // Reset form
