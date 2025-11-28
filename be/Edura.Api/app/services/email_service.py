@@ -31,6 +31,14 @@ def send_verification_code_email(to_email, verification_code):
         tuple: (success: bool, error_message: str)
     """
     # Kiểm tra cấu hình
+    print(f"🔍 [DEBUG] Kiểm tra cấu hình SMTP:")
+    print(f"   - SMTP_SERVER: {SMTP_SERVER}")
+    print(f"   - SMTP_PORT: {SMTP_PORT}")
+    print(f"   - SMTP_USERNAME: {SMTP_USERNAME if SMTP_USERNAME else 'NOT SET'}")
+    print(f"   - SMTP_PASSWORD: {'SET' if SMTP_PASSWORD else 'NOT SET'} (length: {len(SMTP_PASSWORD) if SMTP_PASSWORD else 0})")
+    print(f"   - EMAIL_FROM: {EMAIL_FROM}")
+    print(f"   - DEBUG_MODE: {DEBUG_MODE}")
+    
     if not SMTP_USERNAME or not SMTP_PASSWORD:
         error_msg = "SMTP_USERNAME hoặc SMTP_PASSWORD chưa được cấu hình trong file .env"
         print(f"❌ Lỗi cấu hình email: {error_msg}")
@@ -73,44 +81,86 @@ def send_verification_code_email(to_email, verification_code):
         msg.attach(MIMEText(body, 'html'))
         
         # Gửi email
-        print(f"📧 Đang kết nối SMTP server: {SMTP_SERVER}:{SMTP_PORT}")
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
+        print(f"📧 [STEP 1] Đang kết nối SMTP server: {SMTP_SERVER}:{SMTP_PORT}")
+        try:
+            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
+            print(f"✅ [STEP 1] Kết nối SMTP thành công")
+        except Exception as e:
+            error_msg = f"Không thể kết nối đến SMTP server {SMTP_SERVER}:{SMTP_PORT}. Lỗi: {str(e)}"
+            print(f"❌ [STEP 1] {error_msg}")
+            print(f"   Traceback: {traceback.format_exc()}")
+            raise
         
-        print(f"🔐 Đang bật TLS...")
-        server.starttls()
+        print(f"🔐 [STEP 2] Đang bật TLS...")
+        try:
+            server.starttls()
+            print(f"✅ [STEP 2] TLS đã được bật")
+        except Exception as e:
+            error_msg = f"Không thể bật TLS. Lỗi: {str(e)}"
+            print(f"❌ [STEP 2] {error_msg}")
+            print(f"   Traceback: {traceback.format_exc()}")
+            server.quit()
+            raise
         
-        print(f"🔑 Đang đăng nhập với username: {SMTP_USERNAME}")
-        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        print(f"🔑 [STEP 3] Đang đăng nhập với username: {SMTP_USERNAME}")
+        print(f"   Password length: {len(SMTP_PASSWORD)} ký tự")
+        try:
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            print(f"✅ [STEP 3] Đăng nhập thành công")
+        except smtplib.SMTPAuthenticationError as e:
+            error_msg = f"Lỗi xác thực SMTP: Sai username hoặc password. Chi tiết: {str(e)}"
+            print(f"❌ [STEP 3] {error_msg}")
+            print(f"   💡 Gợi ý: Đảm bảo dùng App Password (16 ký tự), không phải mật khẩu Gmail thường")
+            server.quit()
+            raise
+        except Exception as e:
+            error_msg = f"Lỗi khi đăng nhập SMTP: {str(e)}"
+            print(f"❌ [STEP 3] {error_msg}")
+            print(f"   Traceback: {traceback.format_exc()}")
+            server.quit()
+            raise
         
-        print(f"📤 Đang gửi email đến {to_email}...")
-        text = msg.as_string()
-        server.sendmail(EMAIL_FROM, to_email, text)
+        print(f"📤 [STEP 4] Đang gửi email đến {to_email}...")
+        try:
+            text = msg.as_string()
+            server.sendmail(EMAIL_FROM, to_email, text)
+            print(f"✅ [STEP 4] Email đã được gửi")
+        except Exception as e:
+            error_msg = f"Lỗi khi gửi email: {str(e)}"
+            print(f"❌ [STEP 4] {error_msg}")
+            print(f"   Traceback: {traceback.format_exc()}")
+            server.quit()
+            raise
+        
         server.quit()
-        
         print(f"✅ Email xác thực đã được gửi thành công đến {to_email}")
         return True, None
         
     except smtplib.SMTPAuthenticationError as e:
-        error_msg = f"Lỗi xác thực SMTP: Sai username hoặc password. Kiểm tra lại SMTP_USERNAME và SMTP_PASSWORD trong file .env"
+        error_msg = f"Lỗi xác thực SMTP: Sai username hoặc password. Chi tiết: {str(e)}"
         print(f"❌ {error_msg}")
-        print(f"Chi tiết lỗi: {str(e)}")
+        print(f"   Error code: {e.smtp_code if hasattr(e, 'smtp_code') else 'N/A'}")
+        print(f"   Error message: {e.smtp_error if hasattr(e, 'smtp_error') else str(e)}")
+        print(f"   Full traceback: {traceback.format_exc()}")
         return False, error_msg
         
     except smtplib.SMTPConnectError as e:
-        error_msg = f"Không thể kết nối đến SMTP server {SMTP_SERVER}:{SMTP_PORT}. Kiểm tra lại SMTP_SERVER và SMTP_PORT trong file .env"
+        error_msg = f"Không thể kết nối đến SMTP server {SMTP_SERVER}:{SMTP_PORT}. Lỗi: {str(e)}"
         print(f"❌ {error_msg}")
-        print(f"Chi tiết lỗi: {str(e)}")
+        print(f"   Full traceback: {traceback.format_exc()}")
         return False, error_msg
         
     except smtplib.SMTPException as e:
         error_msg = f"Lỗi SMTP: {str(e)}"
         print(f"❌ {error_msg}")
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"   Error type: {type(e).__name__}")
+        print(f"   Full traceback: {traceback.format_exc()}")
         return False, error_msg
         
     except Exception as e:
         error_msg = f"Lỗi không xác định khi gửi email: {str(e)}"
         print(f"❌ {error_msg}")
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"   Error type: {type(e).__name__}")
+        print(f"   Full traceback: {traceback.format_exc()}")
         return False, error_msg
 
