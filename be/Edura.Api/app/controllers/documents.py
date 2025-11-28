@@ -23,7 +23,7 @@ import jwt  # pyjwt
 import fitz  # PyMuPDF
 from PIL import Image, ImageDraw, ImageFont
 import boto3
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from datetime import datetime, timedelta, date
 import unicodedata
 
@@ -1523,6 +1523,25 @@ def create_document_comment(doc_id):
 
 # ===================== RAW (Proxy PDF cho pdf.js) =====================
 
+def _encode_filename_for_header(filename: str) -> str:
+    """
+    Encode filename cho Content-Disposition header theo RFC 5987.
+    Hỗ trợ ký tự Unicode (tiếng Việt) bằng cách sử dụng filename*=UTF-8''encoded
+    """
+    try:
+        # Thử encode bằng ASCII trước (cho tương thích)
+        filename.encode('ascii')
+        # Nếu thành công, dùng format đơn giản
+        return f'attachment; filename="{filename}"'
+    except UnicodeEncodeError:
+        # Nếu có ký tự Unicode, dùng RFC 5987 encoding
+        # Format: filename*=UTF-8''encoded_name
+        encoded = quote(filename, safe='')
+        # Fallback filename cho trình duyệt cũ không hỗ trợ RFC 5987
+        ascii_fallback = filename.encode('ascii', 'ignore').decode('ascii') or 'download'
+        return f'attachment; filename="{ascii_fallback}"; filename*=UTF-8\'\'{encoded}'
+
+
 def _parse_s3_url(s3_url: str):
     """
     Trả về (bucket, key) từ S3 URL:
@@ -1775,7 +1794,8 @@ def get_document_raw(doc_id):
             if dl:
                 # đoán đuôi từ URL
                 ext = os.path.splitext(urlparse(s3_url).path)[1] or ".bin"
-                resp.headers["Content-Disposition"] = f'attachment; filename="{safe_name}{ext}"'
+                full_filename = f"{safe_name}{ext}"
+                resp.headers["Content-Disposition"] = _encode_filename_for_header(full_filename)
             return resp
     except Exception:
         pass
@@ -1814,7 +1834,8 @@ def get_document_raw(doc_id):
 
         if dl:
             ext = os.path.splitext(key)[1] or ".bin"
-            headers["Content-Disposition"] = f'attachment; filename="{safe_name}{ext}"'
+            full_filename = f"{safe_name}{ext}"
+            headers["Content-Disposition"] = _encode_filename_for_header(full_filename)
 
         status = 206 if "Content-Range" in headers else 200
         return Response(stream_with_context(gen()), status=status, headers=headers)
