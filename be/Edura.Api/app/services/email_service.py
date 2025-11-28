@@ -1,5 +1,6 @@
 # app/services/email_service.py
 import smtplib
+import ssl
 import os
 import traceback
 from email.mime.text import MIMEText
@@ -12,6 +13,7 @@ load_dotenv()
 # Cấu hình email từ biến môi trường
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() == "true"  # Dùng SSL (port 465) thay vì TLS (port 587)
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 EMAIL_FROM = os.getenv("EMAIL_FROM", SMTP_USERNAME)
@@ -81,26 +83,40 @@ def send_verification_code_email(to_email, verification_code):
         msg.attach(MIMEText(body, 'html'))
         
         # Gửi email
-        print(f"📧 [STEP 1] Đang kết nối SMTP server: {SMTP_SERVER}:{SMTP_PORT}")
+        print(f"📧 [STEP 1] Đang kết nối SMTP server: {SMTP_SERVER}:{SMTP_PORT} (SSL: {SMTP_USE_SSL})")
         try:
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
-            print(f"✅ [STEP 1] Kết nối SMTP thành công")
+            if SMTP_USE_SSL:
+                # Dùng SMTP_SSL cho port 465 (Render thường cần SSL thay vì TLS)
+                print(f"   Sử dụng SMTP_SSL (port 465)...")
+                context = ssl.create_default_context()
+                server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=10, context=context)
+                print(f"✅ [STEP 1] Kết nối SMTP_SSL thành công")
+            else:
+                # Dùng SMTP thường rồi bật TLS cho port 587
+                server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
+                print(f"✅ [STEP 1] Kết nối SMTP thành công")
         except Exception as e:
             error_msg = f"Không thể kết nối đến SMTP server {SMTP_SERVER}:{SMTP_PORT}. Lỗi: {str(e)}"
             print(f"❌ [STEP 1] {error_msg}")
+            print(f"   💡 Gợi ý: Render có thể chặn kết nối SMTP. Thử:")
+            print(f"      1. Dùng SMTP_USE_SSL=true với port 465")
+            print(f"      2. Hoặc dùng email service API (SendGrid, Mailgun) thay vì SMTP trực tiếp")
             print(f"   Traceback: {traceback.format_exc()}")
             raise
         
-        print(f"🔐 [STEP 2] Đang bật TLS...")
-        try:
-            server.starttls()
-            print(f"✅ [STEP 2] TLS đã được bật")
-        except Exception as e:
-            error_msg = f"Không thể bật TLS. Lỗi: {str(e)}"
-            print(f"❌ [STEP 2] {error_msg}")
-            print(f"   Traceback: {traceback.format_exc()}")
-            server.quit()
-            raise
+        if not SMTP_USE_SSL:
+            print(f"🔐 [STEP 2] Đang bật TLS...")
+            try:
+                server.starttls()
+                print(f"✅ [STEP 2] TLS đã được bật")
+            except Exception as e:
+                error_msg = f"Không thể bật TLS. Lỗi: {str(e)}"
+                print(f"❌ [STEP 2] {error_msg}")
+                print(f"   Traceback: {traceback.format_exc()}")
+                server.quit()
+                raise
+        else:
+            print(f"✅ [STEP 2] SSL đã được bật (không cần TLS)")
         
         print(f"🔑 [STEP 3] Đang đăng nhập với username: {SMTP_USERNAME}")
         print(f"   Password length: {len(SMTP_PASSWORD)} ký tự")
