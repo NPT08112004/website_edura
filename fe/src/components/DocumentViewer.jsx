@@ -778,16 +778,11 @@ export default function DocumentViewer({ documentId, onBack }) {
           >
             <Menu size={24} />
           </button>
-          <div 
-            className="logo-section" 
+          <Logo
             onClick={() => window.location.href = '/'}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="logo-badge">
-              <span className="logo-number">87</span>
-            </div>
-            <span className="brand-text">Edura</span>
-          </div>
+            showText={false}
+            size="default"
+          />
         </div>
 
         <div className="header-center">
