@@ -530,14 +530,35 @@ def forgot_password():
         except Exception as e:
             print(f"❌ Lỗi khi gọi send_verification_code_email: {str(e)}")
             traceback.print_exc()
+            # Trong development, trả về chi tiết lỗi
+            if os.getenv("FLASK_ENV") == "development":
+                return jsonify({
+                    "error": f"Lỗi khi gửi email: {str(e)}",
+                    "traceback": traceback.format_exc()
+                }), 500
             return jsonify({"error": "Lỗi khi gửi email. Vui lòng thử lại sau."}), 500
         
         if not email_sent:
+            # Kiểm tra xem có đang ở debug mode không
+            debug_mode = os.getenv("EMAIL_DEBUG_MODE", "false").lower() == "true"
+            
             # Trả về thông báo lỗi chi tiết hơn (chỉ trong development)
-            error_detail = error_message if os.getenv("FLASK_ENV") == "development" else "Không thể gửi email. Vui lòng kiểm tra cấu hình email server."
-            return jsonify({
-                "error": error_detail
-            }), 500
+            if os.getenv("FLASK_ENV") == "development" or debug_mode:
+                return jsonify({
+                    "error": error_message or "Không thể gửi email. Vui lòng kiểm tra cấu hình email server.",
+                    "debug_info": {
+                        "smtp_server": os.getenv("SMTP_SERVER"),
+                        "smtp_port": os.getenv("SMTP_PORT"),
+                        "smtp_username_set": bool(os.getenv("SMTP_USERNAME")),
+                        "smtp_password_set": bool(os.getenv("SMTP_PASSWORD")),
+                        "email_from": os.getenv("EMAIL_FROM"),
+                        "debug_mode": debug_mode
+                    }
+                }), 500
+            else:
+                return jsonify({
+                    "error": "Không thể gửi email. Vui lòng kiểm tra cấu hình email server."
+                }), 500
         
         return jsonify({
             "message": "Mã xác thực đã được gửi đến email của bạn."
