@@ -931,14 +931,11 @@ def get_documents():
         # Cho phép: "ky thuat", "kythuat", "kỹ thuật" đều match
         search_normalized = normalize_search(search) if search else ""
 
+        # KHÔNG dùng regex MongoDB nữa vì:
+        # 1. Regex không bỏ dấu, nên không match đúng với normalize
+        # 2. Regex match quá rộng, có thể match từ không liên quan
+        # 3. Sẽ lọc chính xác bằng Python normalize sau
         query_or = []
-        if search:
-            # Vẫn dùng regex để lọc sơ bộ (nhanh hơn)
-            query_or = [
-                {"title": {"$regex": search, "$options": "i"}},
-                {"summary": {"$regex": search, "$options": "i"}},
-                {"keywords": {"$regex": search, "$options": "i"}},
-            ]
 
         ands = []
 
