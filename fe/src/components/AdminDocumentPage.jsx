@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { getDocuments, getSchools, getCategories } from '../api';
+import { getDocuments, getSchools, getCategories, deleteDocumentByAdmin } from '../api';
 import Swal from 'sweetalert2';
 import { 
   Search, 
@@ -168,26 +168,38 @@ export default function AdminDocumentPage() {
     window.open(`/document/${docId}`, '_blank');
   }
 
-  function onDeleteDocument(doc) {
-    Swal.fire({
+  async function onDeleteDocument(doc) {
+    const { isConfirmed } = await Swal.fire({
       title: 'Xác nhận xóa',
-      text: `Xóa tài liệu "${doc.title}"?`,
+      text: `Xóa tài liệu "${doc.title}"? Hành động này không thể hoàn tác.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Xóa',
       cancelButtonText: 'Hủy',
       confirmButtonColor: '#dc2626'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // TODO: Implement delete document API call
-        Swal.fire({
-          icon: 'info',
-          title: 'Chức năng đang phát triển',
-          text: 'Chức năng xóa tài liệu đang được phát triển.',
-          confirmButtonText: 'Đóng'
-        });
-      }
     });
+    
+    if (!isConfirmed) return;
+
+    try {
+      await deleteDocumentByAdmin(doc._id || doc.id);
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công',
+        text: 'Đã xóa tài liệu thành công.',
+        confirmButtonText: 'Đóng'
+      });
+      // Reload danh sách tài liệu
+      loadDocuments();
+    } catch (err) {
+      const errorMessage = err?.message || 'Không thể xóa tài liệu.';
+      Swal.fire({
+        icon: 'error',
+        title: 'Thất bại',
+        text: errorMessage,
+        confirmButtonText: 'Đóng'
+      });
+    }
   }
 
   // Không cần filter nữa vì đã filter ở backend

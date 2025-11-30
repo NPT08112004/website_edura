@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify
 from app.services.mongo_service import mongo_collections
+from app.services.aws_service import aws_service
 from bson import ObjectId
 import jwt
 import os
 import datetime
+from urllib.parse import urlparse
 
 # Blueprint cho các API quản trị
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -330,6 +332,108 @@ def unlock_user(user_id):
             "username": updated.get('username'),
             "fullName": updated.get('fullName'),
             "status": updated.get('status')
+        }
+    }), 200
+
+
+@admin_bp.route('/documents/<doc_id>', methods=['DELETE'])
+def delete_document(doc_id):
+    """
+    Xóa tài liệu bất kỳ. Chỉ admin mới có quyền gọi.
+    ---
+    tags:
+      - Admin
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: doc_id
+        required: true
+        type: string
+        description: MongoDB ObjectId của tài liệu cần xóa.
+    responses:
+      200:
+        description: Xóa thành công.
+      400:
+        description: doc_id không hợp lệ.
+      401:
+        description: Không xác thực.
+      403:
+        description: Không có quyền.
+      404:
+        description: Không tìm thấy tài liệu.
+    """
+    current_user, err = _get_current_user()
+    if err:
+        return err
+
+    if current_user.get('role') != 'admin':
+        return jsonify({"error": "Bạn không có quyền thực hiện thao tác này."}), 403
+
+    try:
+        doc_obj_id = ObjectId(doc_id)
+    except Exception:
+        return jsonify({"error": "doc_id không hợp lệ."}), 400
+
+    # Lấy thông tin document
+    doc = mongo_collections.documents.find_one({"_id": doc_obj_id})
+    if not doc:
+        return jsonify({"error": "Không tìm thấy tài liệu."}), 404
+
+    # Xóa file trên S3 nếu có
+    s3_url = doc.get('s3_url') or doc.get('s3Url')
+    if s3_url:
+        try:
+            # Parse S3 URL để lấy key
+            # Format: https://bucket.s3.region.amazonaws.com/key hoặc https://bucket.s3-region.amazonaws.com/key
+            parsed = urlparse(s3_url)
+            # Lấy path sau domain (bỏ dấu / đầu tiên)
+            s3_key = parsed.path.lstrip('/')
+            if s3_key:
+                aws_service.delete_object(s3_key)
+        except Exception as e:
+            # Log lỗi nhưng vẫn tiếp tục xóa document trong DB
+            print(f"[WARNING] Không thể xóa file S3 {s3_url}: {e}")
+
+    # Xóa image trên S3 nếu có
+    image_url = doc.get('image_url') or doc.get('imageUrl')
+    if image_url and image_url.startswith('http'):
+        try:
+            parsed = urlparse(image_url)
+            image_key = parsed.path.lstrip('/')
+            if image_key:
+                aws_service.delete_object(image_key)
+        except Exception as e:
+            print(f"[WARNING] Không thể xóa image S3 {image_url}: {e}")
+
+    # Xóa document trong MongoDB
+    result = mongo_collections.documents.delete_one({"_id": doc_obj_id})
+    if result.deleted_count == 0:
+        return jsonify({"error": "Xóa tài liệu thất bại."}), 500
+
+    # Xóa view history liên quan
+    try:
+        mongo_collections.view_history.delete_many({"documentId": doc_obj_id})
+    except Exception as e:
+        print(f"[WARNING] Không thể xóa view history: {e}")
+
+    # Xóa reactions liên quan (nếu có)
+    try:
+        mongo_collections.document_reactions.delete_many({"documentId": doc_obj_id})
+    except Exception as e:
+        print(f"[WARNING] Không thể xóa reactions: {e}")
+
+    # Xóa comments liên quan (nếu có)
+    try:
+        mongo_collections.document_comments.delete_many({"documentId": doc_obj_id})
+    except Exception as e:
+        print(f"[WARNING] Không thể xóa comments: {e}")
+
+    return jsonify({
+        "message": "Đã xóa tài liệu thành công.",
+        "document": {
+            "id": str(doc.get('_id')),
+            "title": doc.get('title')
         }
     }), 200
 

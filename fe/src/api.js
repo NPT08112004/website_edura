@@ -146,6 +146,9 @@ export async function lockUser(userId) {
 export async function unlockUser(userId) {
   return http("POST", `/api/admin/users/${userId}/unlock`);
 }
+export async function deleteDocumentByAdmin(documentId) {
+  return http("DELETE", `/api/admin/documents/${documentId}`);
+}
 
 /* -------------------- Documents -------------------- */
 // Danh sách + filter với pagination
