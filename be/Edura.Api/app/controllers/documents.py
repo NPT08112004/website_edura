@@ -945,19 +945,12 @@ def get_documents():
         
         skip = (page - 1) * limit
 
-<<<<<<< HEAD
-        # Chuẩn hóa search query (bỏ dấu + bỏ khoảng trắng) để tìm kiếm linh hoạt
-        # Cho phép: "ky thuat", "kythuat", "kỹ thuật" đều match
-        search_normalized = normalize_search(search) if search else ""
-
-        # KHÔNG dùng regex MongoDB nữa vì:
+        # Không dùng regex MongoDB nữa vì:
         # 1. Regex không bỏ dấu, nên không match đúng với normalize
         # 2. Regex match quá rộng, có thể match từ không liên quan
-        # 3. Sẽ lọc chính xác bằng Python normalize sau
+        # 3. Sẽ lọc chính xác bằng Python với search_in_multiple_fields sau
         query_or = []
 
-=======
->>>>>>> 334d70619b199e9190dec5345667a795bf4cd1f3
         ands = []
 
         # school/category: hỗ trợ cả ObjectId lẫn string (tương thích dữ liệu cũ)
