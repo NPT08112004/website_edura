@@ -112,6 +112,13 @@ class Collections:
             if "ix_documents_categoryId" not in self.documents.index_information():
                 self.documents.create_index([("categoryId", 1)], name="ix_documents_categoryId")
             
+            # Index cho searchText (normalized field) để tìm kiếm nhanh không dấu, không cách
+            if "ix_documents_searchText" not in self.documents.index_information():
+                try:
+                    self.documents.create_index([("searchText", 1)], name="ix_documents_searchText")
+                except Exception as e:
+                    print(f"Lỗi khi tạo index ix_documents_searchText: {e}")
+            
             # Compound index cho schoolId + categoryId + createdAt (tối ưu query phổ biến)
             if not self._has_index_by_fields(self.documents, ["schoolId", "categoryId", "createdAt"]):
                 try:
@@ -121,6 +128,16 @@ class Collections:
                     )
                 except Exception as e:
                     print(f"Lỗi khi tạo index ix_documents_school_category_created: {e}")
+            
+            # Compound index cho searchText + filters để tối ưu search query
+            if not self._has_index_by_fields(self.documents, ["searchText", "schoolId", "categoryId"]):
+                try:
+                    self.documents.create_index(
+                        [("searchText", 1), ("schoolId", 1), ("categoryId", 1)],
+                        name="ix_documents_search_filters"
+                    )
+                except Exception as e:
+                    print(f"Lỗi khi tạo index ix_documents_search_filters: {e}")
 
             # Index cho chat_messages
             if "ix_chat_messages_conv" not in self.chat_messages.index_information():

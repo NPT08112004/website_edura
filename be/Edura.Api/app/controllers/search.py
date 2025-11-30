@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from bson import ObjectId
 from app.services.mongo_service import mongo_collections
 from flask import current_app
-from app.utils.search_utils import normalize_search, search_in_multiple_fields
+from app.utils.search_utils import calculate_relevance_score
 
 import traceback
 import jwt  # pip install pyjwt
@@ -89,7 +89,6 @@ def search_documents():
     """
     try:
         q = (request.args.get("q") or "").strip()
-        q_norm = normalize_search(q)  # Bỏ dấu + bỏ khoảng trắng
 
         school_id_raw = (request.args.get("schoolId") or "").strip()
         category_id_raw = (request.args.get("categoryId") or "").strip()
@@ -125,24 +124,27 @@ def search_documents():
             "uploaderName": 1,  # snapshot tên người đăng
         }
 
+        # 2) Query tất cả documents (hoặc với filters)
         docs = list(mongo_collections.documents.find(base_match, projection))
 
-        # 2) Lọc theo q KHÔNG DẤU + KHÔNG KHOẢNG TRẮNG ở Python
-        # Cho phép tìm: "ky thuat", "kythuat", "kỹ thuật" đều match
-        if q_norm:
+        # 3) Filter + tính điểm relevance bằng Python
+        q_stripped = q.strip()
+        if q_stripped:
             filtered = []
             for d in docs:
                 title = d.get("title", "") or ""
                 keywords = d.get("keywords", []) or []
                 summary = d.get("summary", "") or ""
-                
-                # Sử dụng hàm helper để tìm trong nhiều fields
-                if search_in_multiple_fields(q, title, keywords, summary):
+
+                score = calculate_relevance_score(q_stripped, title, keywords, summary)
+                if score > 0:
+                    d["_relevance_score"] = score
                     filtered.append(d)
         else:
+            # Không có search query, trả về tất cả
             filtered = docs
 
-        # 3) Join tên trường/thể loại/người đăng (một lượt rồi map)
+        # 4) Join tên trường/thể loại/người đăng (một lượt rồi map)
         school_ids = {d.get("schoolId") for d in filtered if d.get("schoolId")}
         category_ids = {d.get("categoryId") for d in filtered if d.get("categoryId")}
         user_ids = {d.get("userId") for d in filtered if d.get("userId")}
@@ -169,15 +171,25 @@ def search_documents():
             ):
                 user_map[u["_id"]] = _uploader_name(u)
 
-        # 4) Sort & paginate (ưu tiên createdAt -> created_at -> _id)
-        def _sort_key(d):
-            return d.get("createdAt") or d.get("created_at") or d.get("_id")
+        # 5) Sort & paginate
+        if q_stripped:
+            # Có query: ưu tiên relevance, sau đó đến thời gian
+            def _sort_key_relevance(d):
+                score = d.get("_relevance_score", 0.0)
+                created = d.get("createdAt") or d.get("created_at") or d.get("_id")
+                return (score, created)
 
-        filtered.sort(key=_sort_key, reverse=True)
+            filtered.sort(key=_sort_key_relevance, reverse=True)
+        else:
+            # Không có search query: ưu tiên mới nhất
+            def _sort_key_date(d):
+                return d.get("createdAt") or d.get("created_at") or d.get("_id")
+
+            filtered.sort(key=_sort_key_date, reverse=True)
         total = len(filtered)
         page_items = filtered[skip : skip + limit]
 
-        # 5) Serialize + gắn tên
+        # 6) Serialize + gắn tên
         items = []
         for d in page_items:
             it = {

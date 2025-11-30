@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from bson import ObjectId
 from app.services.mongo_service import mongo_collections
-from app.utils.search_utils import normalize_search, search_in_multiple_fields
+from app.utils.search_utils import calculate_relevance_score
 import os
 import jwt
 from datetime import datetime
@@ -105,7 +105,6 @@ def list_documents():
         limit = max(int(request.args.get("limit", 10)), 1)
 
         search = (request.args.get("search") or "").strip()
-        search_norm = normalize_search(search)  # Bỏ dấu + bỏ khoảng trắng
         
         category_id = request.args.get("categoryId")
         school_id = request.args.get("schoolId")
@@ -142,29 +141,41 @@ def list_documents():
             "schoolId": 1, "school_id": 1,
         }
 
-        # LẤY TẤT CẢ docs thỏa mãn điều kiện lọc ID (TRƯỚC KHI PHÂN TRANG)
-        # Bằng cách này, ta có thể lọc không dấu chính xác trên toàn bộ kết quả.
+        # LẤY TẤT CẢ docs thỏa mãn điều kiện lọc (TRƯỚC KHI PHÂN TRANG)
         all_docs = list(
             mongo_collections.documents.find(base_query, projection)
             .sort([("createdAt", -1), ("created_at", -1)])
         )
 
-        # 2) Lọc theo search KHÔNG DẤU + KHÔNG KHOẢNG TRẮNG ở Python
-        # Cho phép tìm: "ky thuat", "kythuat", "kỹ thuật" đều match
-        if search_norm:
+        # 2) Filter + tính điểm relevance bằng Python
+        search_stripped = search.strip()
+        if search_stripped:
             filtered_docs = []
             for d in all_docs:
                 title = d.get("title", "") or ""
                 keywords = d.get("keywords", []) or []
                 summary = d.get("summary", "") or ""
-                
-                # Sử dụng hàm helper để tìm trong nhiều fields
-                if search_in_multiple_fields(search, title, keywords, summary):
+
+                score = calculate_relevance_score(search_stripped, title, keywords, summary)
+                if score > 0:
+                    d["_relevance_score"] = score
                     filtered_docs.append(d)
+
+            # Sắp xếp theo relevance trước, sau đó theo createdAt/created_at/_id
+            def _sort_key_relevance(d):
+                score = d.get("_relevance_score", 0.0)
+                created = d.get("createdAt") or d.get("created_at") or d.get("_id")
+                return (score, created)
+
+            all_docs = sorted(filtered_docs, key=_sort_key_relevance, reverse=True)
         else:
-            filtered_docs = all_docs
+            # Không có search query: Sắp xếp theo createdAt (mới -> cũ)
+            def _sort_key_date(d):
+                return d.get("createdAt") or d.get("created_at") or d.get("_id")
+
+            all_docs.sort(key=_sort_key_date, reverse=True)
             
-        # 3) Phân trang sau khi lọc
+        # 4) Phân trang sau khi lọc và sắp xếp
         total = len(filtered_docs)
         skip = (page - 1) * limit
         docs = filtered_docs[skip : skip + limit]
