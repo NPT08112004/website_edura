@@ -31,7 +31,7 @@ from app.services.aws_service import aws_service
 from app.services.ai_service import ai_service
 from app.services.mongo_service import mongo_collections
 from app.models.document import Document
-from app.utils.search_utils import normalize_search, search_in_multiple_fields
+from app.utils.search_utils import calculate_relevance_score
 from jwt import ExpiredSignatureError, InvalidTokenError
 from flask import current_app
 from bson import ObjectId
@@ -521,6 +521,10 @@ def register_document():
         )
         doc_dict = doc.to_mongo_doc()
         doc_dict["uploaderName"] = uploader_name
+        
+        # Tạo searchText normalized (tạm thời với summary/keywords tạm)
+        doc_dict["searchText"] = create_normalized_text(title, doc_dict.get("summary", ""), doc_dict.get("keywords", []))
+        
         result = mongo_collections.documents.insert_one(doc_dict)
         doc_id = result.inserted_id
 
@@ -621,6 +625,16 @@ def register_document():
                 update_fields = {"summary": summary, "keywords": keywords, "image_url": final_img}
                 if page_count:
                     update_fields["pages"] = page_count
+                
+                # Cập nhật searchText khi có summary/keywords mới
+                # Lấy title từ document hiện tại
+                current_doc = mongo_collections.documents.find_one({"_id": doc_id}, {"title": 1})
+                if current_doc:
+                    update_fields["searchText"] = create_normalized_text(
+                        current_doc.get("title", ""), 
+                        summary or "", 
+                        keywords or []
+                    )
 
                 mongo_collections.documents.update_one(
                     {"_id": doc_id},
@@ -856,6 +870,10 @@ def upload_document():
         )
         doc_dict = doc.to_mongo_doc()
         doc_dict["uploaderName"] = uploader_name
+        
+        # Tạo searchText normalized để tìm kiếm nhanh (có dấu/không dấu, có cách/không cách)
+        doc_dict["searchText"] = create_normalized_text(title, summary, keywords or [])
+        
         result = mongo_collections.documents.insert_one(doc_dict)
 
         # Cộng điểm + ghi transaction
@@ -927,6 +945,7 @@ def get_documents():
         
         skip = (page - 1) * limit
 
+<<<<<<< HEAD
         # Chuẩn hóa search query (bỏ dấu + bỏ khoảng trắng) để tìm kiếm linh hoạt
         # Cho phép: "ky thuat", "kythuat", "kỹ thuật" đều match
         search_normalized = normalize_search(search) if search else ""
@@ -937,6 +956,8 @@ def get_documents():
         # 3. Sẽ lọc chính xác bằng Python normalize sau
         query_or = []
 
+=======
+>>>>>>> 334d70619b199e9190dec5345667a795bf4cd1f3
         ands = []
 
         # school/category: hỗ trợ cả ObjectId lẫn string (tương thích dữ liệu cũ)
@@ -1014,13 +1035,12 @@ def get_documents():
             if date_filter:
                 ands.append({"$or": [{"createdAt": date_filter}, {"created_at": date_filter}]})
 
-        # Build mongo query (chỉ dùng filters, không dùng search regex nếu cần tìm không dấu)
+        # Build mongo query
         mongo_query = {}
         if ands:
-            mongo_query = {"$and": ands}
+            mongo_query = {"$and": ands} if len(ands) > 1 else ands[0] if len(ands) == 1 else {}
 
-        # Query tất cả documents (hoặc với filters) để có thể lọc bằng cách bỏ dấu
-        # Nếu có search, sẽ lọc sau ở Python
+        # Query documents với MongoDB (tối ưu với searchText index)
         try:
             cursor = mongo_collections.documents.find(mongo_query).sort("createdAt", -1)
         except Exception:
@@ -1029,21 +1049,31 @@ def get_documents():
             except Exception:
                 cursor = mongo_collections.documents.find(mongo_query)
 
-        # Nếu có search, lọc bằng cách bỏ dấu + bỏ khoảng trắng trước khi paginate
-        # Cho phép tìm: "ky thuat", "kythuat", "kỹ thuật" đều match
         all_docs = list(cursor)
-        if search_normalized:
+        
+        # Filter bằng Python + tính điểm relevance
+        search_stripped = search.strip()
+        if search_stripped:
             filtered_docs = []
             for doc in all_docs:
                 title = doc.get("title", "") or ""
                 summary = doc.get("summary", "") or ""
                 keywords = doc.get("keywords", []) or []
-                
-                # Sử dụng hàm helper để tìm trong nhiều fields
-                if search_in_multiple_fields(search, title, keywords, summary):
+
+                score = calculate_relevance_score(search_stripped, title, keywords, summary)
+                if score > 0:
+                    doc["_relevance_score"] = score
                     filtered_docs.append(doc)
             all_docs = filtered_docs
 
+            # Sắp xếp theo relevance trước, sau đó theo createdAt/created_at/_id
+            def _sort_key_relevance(d):
+                score = d.get("_relevance_score", 0.0)
+                created = d.get("createdAt") or d.get("created_at") or d.get("_id")
+                return (score, created)
+
+            all_docs.sort(key=_sort_key_relevance, reverse=True)
+        
         # Lấy tổng số documents sau khi lọc
         total_count = len(all_docs)
         
