@@ -46,16 +46,32 @@ Hệ thống đã được cập nhật để sử dụng **Resend.com API** là
 
 ### Option A: Dùng Email mặc định (Test nhanh - Khuyến nghị cho Free tier)
 
-**Không cần verify domain!** Resend cho phép gửi email từ `onboarding@resend.dev` mà không cần cấu hình gì.
+**⚠️ QUAN TRỌNG:** Resend có 2 chế độ:
 
-**Ưu điểm:**
-- ✅ Setup ngay lập tức, không cần verify
-- ✅ Hoạt động ngay sau khi có API key
+1. **Test Mode (Mặc định khi mới đăng ký):**
+   - Chỉ gửi được đến email đã đăng ký tài khoản Resend
+   - Không thể gửi đến email khác
+   - Lỗi 403 nếu cố gửi đến email khác
+
+2. **Production Mode (Sau khi verify domain):**
+   - Có thể gửi đến bất kỳ email nào
+   - Cần verify domain riêng
+
+**Giải pháp cho Test Mode:**
+
+**Cách 1: Dùng `onboarding@resend.dev` (Khuyến nghị)**
+- ✅ Có thể gửi đến bất kỳ email nào (không cần verify domain)
+- ✅ Setup ngay lập tức
 - ✅ Đủ dùng cho test và development
 
-**Nhược điểm:**
-- ⚠️ Email từ `onboarding@resend.dev` có thể bị một số email provider đánh dấu là test email
-- ⚠️ Không professional cho production
+**Cách 2: Test với email đã đăng ký Resend**
+- Chỉ test với email bạn dùng để đăng ký Resend
+- Không thể test với email khác
+
+**Cách 3: Verify domain (Production)**
+- Mua domain riêng
+- Verify domain trong Resend
+- Có thể gửi đến bất kỳ email nào
 
 **Cách dùng:**
 ```env
@@ -149,6 +165,32 @@ Sau khi thêm environment variables, Render sẽ tự động deploy lại servi
 - ✅ Hoặc mua domain riêng nếu cần domain custom
 - ❌ KHÔNG thể dùng domain miễn phí từ Vercel, Netlify, GitHub, etc.
 
+### Lỗi: "You can only send testing emails to your own email address" (403)
+
+**Nguyên nhân:** 
+- Bạn đang ở **Test Mode** của Resend
+- Resend chỉ cho phép gửi đến email đã đăng ký tài khoản
+- Bạn đang cố gửi đến email khác
+
+**Giải pháp:**
+
+**Option 1: Dùng `onboarding@resend.dev` (Khuyến nghị nhất)**
+```env
+EMAIL_FROM=onboarding@resend.dev
+```
+- ✅ Có thể gửi đến bất kỳ email nào
+- ✅ Không cần verify domain
+- ✅ Hoạt động ngay
+
+**Option 2: Test với email đã đăng ký Resend**
+- Chỉ test với email bạn dùng để đăng ký Resend
+- Tạm thời đủ để test chức năng
+
+**Option 3: Verify domain (Production)**
+- Mua domain riêng
+- Verify domain trong Resend dashboard
+- Có thể gửi đến bất kỳ email nào với domain đã verify
+
 ### Lỗi: "Resend API trả về lỗi 422"
 
 **Nguyên nhân:** 
@@ -239,7 +281,7 @@ EMAIL_FROM=your-email@gmail.com
 
 1. Đăng ký Resend: https://resend.com
 2. Lấy API key từ dashboard (API Keys → Create API Key)
-3. Thêm vào Render:
+3. **QUAN TRỌNG:** Thêm vào Render với `onboarding@resend.dev`:
    ```env
    EMAIL_PROVIDER=resend
    RESEND_API_KEY=re_your-api-key
@@ -247,7 +289,9 @@ EMAIL_FROM=your-email@gmail.com
    ```
 4. Deploy lại - Xong! ✅
 
-**Lưu ý:** 
+**⚠️ Lưu ý QUAN TRỌNG:** 
+- ✅ **BẮT BUỘC** dùng `onboarding@resend.dev` để gửi đến email bất kỳ
+- ❌ Nếu dùng email khác (ví dụ: email đã đăng ký), chỉ gửi được đến email đó
 - ✅ KHÔNG cần verify domain nếu dùng `onboarding@resend.dev`
 - ✅ KHÔNG cần mua domain riêng để bắt đầu
 - ✅ Hoạt động ngay sau khi có API key

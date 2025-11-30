@@ -153,9 +153,31 @@ Email này được gửi tự động, vui lòng không trả lời.
             print(f"   - Email ID: {response_data.get('id', 'N/A')}")
             return True, None
         else:
-            error_msg = f"Resend API trả về lỗi {response.status_code}: {response.text}"
-            print(f"❌ [RESEND] {error_msg}")
-            return False, error_msg
+            # Parse error response để hiển thị message rõ ràng hơn
+            try:
+                error_data = response.json()
+                error_message = error_data.get('message', '')
+                
+                # Xử lý lỗi 403 - Test mode restriction
+                if response.status_code == 403 and 'testing emails' in error_message.lower():
+                    detailed_error = (
+                        f"Resend API lỗi 403: Bạn đang ở chế độ Test Mode. "
+                        f"Resend chỉ cho phép gửi đến email đã đăng ký tài khoản. "
+                        f"Giải pháp: Đổi EMAIL_FROM thành 'onboarding@resend.dev' để gửi đến email bất kỳ. "
+                        f"Chi tiết: {error_message}"
+                    )
+                    print(f"❌ [RESEND] {detailed_error}")
+                    return False, detailed_error
+                
+                # Lỗi khác
+                error_msg = f"Resend API trả về lỗi {response.status_code}: {error_message or response.text}"
+                print(f"❌ [RESEND] {error_msg}")
+                return False, error_msg
+            except:
+                # Nếu không parse được JSON
+                error_msg = f"Resend API trả về lỗi {response.status_code}: {response.text}"
+                print(f"❌ [RESEND] {error_msg}")
+                return False, error_msg
             
     except requests.exceptions.RequestException as e:
         error_msg = f"Lỗi kết nối đến Resend API: {str(e)}"
