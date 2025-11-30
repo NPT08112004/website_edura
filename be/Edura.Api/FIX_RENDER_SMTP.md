@@ -59,11 +59,36 @@ Gửi request forgot-password và kiểm tra logs.
 
 ---
 
-## ✅ Giải pháp 3: Dùng Resend.com API (ĐÃ TÍCH HỢP SẴN - Mặc định - Khuyến nghị)
+## ✅ Giải pháp 3: Dùng SendGrid.com API (ĐÃ TÍCH HỢP SẴN - Mặc định - Khuyến nghị)
 
-✅ **Hệ thống đã được tích hợp Resend.com API sẵn và là mặc định!** Chỉ cần cấu hình environment variables.
+✅ **Hệ thống đã được tích hợp SendGrid.com API sẵn và là mặc định!** Chỉ cần cấu hình environment variables.
 
-### Cấu hình Resend (3 phút - Nhanh nhất)
+### Cấu hình SendGrid (5 phút)
+
+1. **Đăng ký SendGrid:** https://sendgrid.com (Free tier: 100 emails/ngày)
+
+2. **Verify Sender Identity:**
+   - Vào **Settings** → **Sender Authentication** → **Single Sender Verification**
+   - Tạo và verify email của bạn (có thể dùng email cá nhân)
+
+3. **Tạo API Key:**
+   - Vào **Settings** → **API Keys** → **Create API Key**
+   - Copy API key (bắt đầu bằng `SG.`)
+
+4. **Cấu hình trên Render:**
+   ```env
+   EMAIL_PROVIDER=sendgrid
+   SENDGRID_API_KEY=SG_your-api-key-here
+   EMAIL_FROM=your-verified-email@example.com
+   ```
+
+5. **Deploy lại** - Xong! ✅
+
+📖 **Xem hướng dẫn chi tiết:** `SENDGRID_SETUP.md`
+
+### Option khác: Resend.com API (ĐÃ TÍCH HỢP SẴN)
+
+Nếu muốn dùng Resend thay vì SendGrid:
 
 1. **Đăng ký Resend:** https://resend.com (Free tier: 3,000 emails/tháng)
 
@@ -77,8 +102,6 @@ Gửi request forgot-password và kiểm tra logs.
    RESEND_API_KEY=re_your-api-key-here
    EMAIL_FROM=onboarding@resend.dev
    ```
-
-4. **Deploy lại** - Xong! ✅
 
 📖 **Xem hướng dẫn chi tiết:** `RESEND_SETUP.md`
 
@@ -175,9 +198,10 @@ Sau khi cập nhật, xem logs:
 ### Khuyến nghị:
 
 - **Nếu đang dùng Free tier:** 
-  - ✅ **Resend.com** (mặc định, 3,000 emails/tháng, setup nhanh nhất)
-  - ✅ **Mailgun** (5,000 emails/tháng, nhiều hơn nhưng setup phức tạp hơn)
+  - ✅ **SendGrid.com** (mặc định, 100 emails/ngày, đáng tin cậy nhất)
+  - ✅ **Resend.com** (3,000 emails/tháng, setup nhanh nhất)
+  - ✅ **Mailgun** (5,000 emails/tháng, nhiều nhất)
 - **Nếu có ngân sách:** 
   - Nâng cấp lên Starter Plan ($7/tháng) để dùng SMTP trực tiếp
-  - Hoặc tiếp tục dùng Resend/Mailgun (đơn giản hơn)
+  - Hoặc tiếp tục dùng SendGrid/Resend/Mailgun (đơn giản hơn)
 

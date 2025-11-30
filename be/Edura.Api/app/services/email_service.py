@@ -6,15 +6,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Cấu hình Resend từ biến môi trường
-RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+# Cấu hình SendGrid từ biến môi trường
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "noreply@example.com")
 
-# Fallback: Cấu hình Mailgun (nếu không dùng Resend)
+# Fallback: Cấu hình Resend (nếu không dùng SendGrid)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+
+# Fallback: Cấu hình Mailgun (nếu không dùng SendGrid/Resend)
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
 MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
 
-# Fallback: Cấu hình SMTP cũ (nếu không dùng Resend/Mailgun)
+# Fallback: Cấu hình SMTP cũ (nếu không dùng SendGrid/Resend/Mailgun)
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
@@ -24,13 +27,13 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 # Debug mode - nếu True thì chỉ in ra console thay vì gửi email thật
 DEBUG_MODE = os.getenv("EMAIL_DEBUG_MODE", "false").lower() == "true"
 
-# Chọn phương thức gửi email: 'resend' (mặc định), 'mailgun', hoặc 'smtp'
-EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "resend").lower()
+# Chọn phương thức gửi email: 'sendgrid' (mặc định), 'resend', 'mailgun', hoặc 'smtp'
+EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "sendgrid").lower()
 
 def send_verification_code_email(to_email, verification_code):
     """
     Gửi email chứa mã xác thực đến người dùng.
-    Hỗ trợ Resend API (mặc định), Mailgun API, và SMTP (fallback).
+    Hỗ trợ SendGrid API (mặc định), Resend API, Mailgun API, và SMTP (fallback).
     
     Args:
         to_email: Email người nhận
@@ -46,12 +49,150 @@ def send_verification_code_email(to_email, verification_code):
         return True, None
     
     # Chọn provider dựa trên EMAIL_PROVIDER
-    if EMAIL_PROVIDER == "resend":
+    if EMAIL_PROVIDER == "sendgrid":
+        return _send_via_sendgrid(to_email, verification_code)
+    elif EMAIL_PROVIDER == "resend":
         return _send_via_resend(to_email, verification_code)
     elif EMAIL_PROVIDER == "mailgun":
         return _send_via_mailgun(to_email, verification_code)
     else:
         return _send_via_smtp(to_email, verification_code)
+
+
+def _send_via_sendgrid(to_email, verification_code):
+    """
+    Gửi email qua SendGrid API.
+    
+    Args:
+        to_email: Email người nhận
+        verification_code: Mã xác thực 6 chữ số
+    
+    Returns:
+        tuple: (success: bool, error_message: str)
+    """
+    # Kiểm tra cấu hình SendGrid
+    print(f"🔍 [DEBUG] Kiểm tra cấu hình SendGrid:")
+    print(f"   - SENDGRID_API_KEY: {'SET' if SENDGRID_API_KEY else 'NOT SET'}")
+    print(f"   - EMAIL_FROM: {EMAIL_FROM}")
+    print(f"   - DEBUG_MODE: {DEBUG_MODE}")
+    
+    if not SENDGRID_API_KEY:
+        error_msg = "SENDGRID_API_KEY chưa được cấu hình trong file .env"
+        print(f"❌ Lỗi cấu hình SendGrid: {error_msg}")
+        return False, error_msg
+    
+    try:
+        # Nội dung email HTML
+        html_body = f"""
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #4CAF50;">Đặt lại mật khẩu Edura</h2>
+              <p>Xin chào,</p>
+              <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản Edura của mình.</p>
+              <p>Mã xác thực của bạn là:</p>
+              <div style="background-color: #f4f4f4; padding: 20px; text-align: center; margin: 20px 0; border-radius: 5px;">
+                <h1 style="color: #4CAF50; font-size: 32px; margin: 0; letter-spacing: 5px;">{verification_code}</h1>
+              </div>
+              <p>Mã này sẽ hết hạn sau 10 phút.</p>
+              <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+              <p style="color: #999; font-size: 12px;">Email này được gửi tự động, vui lòng không trả lời.</p>
+            </div>
+          </body>
+        </html>
+        """
+        
+        # Text version (fallback)
+        text_body = f"""
+Đặt lại mật khẩu Edura
+
+Xin chào,
+
+Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản Edura của mình.
+
+Mã xác thực của bạn là: {verification_code}
+
+Mã này sẽ hết hạn sau 10 phút.
+
+Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+
+---
+Email này được gửi tự động, vui lòng không trả lời.
+        """
+        
+        # Chuẩn bị request
+        api_url = "https://api.sendgrid.com/v3/mail/send"
+        
+        # Headers
+        headers = {
+            "Authorization": f"Bearer {SENDGRID_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # Payload theo format SendGrid v3 API
+        payload = {
+            "personalizations": [
+                {
+                    "to": [{"email": to_email}],
+                    "subject": "Mã xác thực đặt lại mật khẩu - Edura"
+                }
+            ],
+            "from": {"email": EMAIL_FROM, "name": "Edura"},
+            "content": [
+                {
+                    "type": "text/plain",
+                    "value": text_body
+                },
+                {
+                    "type": "text/html",
+                    "value": html_body
+                }
+            ]
+        }
+        
+        print(f"📧 [SENDGRID] Đang gửi email đến {to_email} qua SendGrid API...")
+        print(f"   - API URL: {api_url}")
+        print(f"   - From: {EMAIL_FROM}")
+        
+        # Gửi request
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+        
+        # Kiểm tra response
+        if response.status_code == 202:  # SendGrid trả về 202 Accepted
+            print(f"✅ [SENDGRID] Email đã được gửi thành công")
+            return True, None
+        else:
+            # Parse error response
+            try:
+                error_data = response.json()
+                error_messages = error_data.get('errors', [])
+                if error_messages:
+                    error_message = error_messages[0].get('message', 'Unknown error')
+                else:
+                    error_message = response.text
+            except:
+                error_message = response.text
+            
+            error_msg = f"SendGrid API trả về lỗi {response.status_code}: {error_message}"
+            print(f"❌ [SENDGRID] {error_msg}")
+            return False, error_msg
+            
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Lỗi kết nối đến SendGrid API: {str(e)}"
+        print(f"❌ [SENDGRID] {error_msg}")
+        print(f"   Traceback: {traceback.format_exc()}")
+        return False, error_msg
+    except Exception as e:
+        error_msg = f"Lỗi không xác định khi gửi email qua SendGrid: {str(e)}"
+        print(f"❌ [SENDGRID] {error_msg}")
+        print(f"   Traceback: {traceback.format_exc()}")
+        return False, error_msg
 
 
 def _send_via_resend(to_email, verification_code):
