@@ -725,6 +725,7 @@ def upload_document():
 
         # Convert Word -> PDF (tùy ENV)
         pdf_bytes = None
+        pdf_is_raw = False  # Flag để biết pdf_bytes có phải là raw_bytes không
         conversion_warning = None
         if ext in ("docx", "doc") and not SKIP_WORD_CONVERSION:
             pdf_bytes = _convert_word_to_pdf_bytes(raw_bytes, ext)
@@ -732,6 +733,7 @@ def upload_document():
                 conversion_warning = "Không thể chuyển Word sang PDF: đã upload file gốc và sinh thumbnail placeholder."
         elif ext == "pdf":
             pdf_bytes = raw_bytes
+            pdf_is_raw = True  # pdf_bytes là cùng object với raw_bytes
         else:
             pdf_bytes = None
 
@@ -892,8 +894,10 @@ def upload_document():
 
 
         # Giải phóng memory sau khi upload xong
-        del raw_bytes
-        if pdf_bytes and pdf_bytes is not raw_bytes:
+        if 'raw_bytes' in locals():
+            del raw_bytes
+        # Chỉ xóa pdf_bytes nếu nó không phải là raw_bytes (tức là object mới được tạo)
+        if 'pdf_bytes' in locals() and pdf_bytes is not None and not pdf_is_raw:
             del pdf_bytes
         import gc
         gc.collect()
@@ -912,6 +916,19 @@ def upload_document():
 
     except Exception as e:
         print(f"[ERROR] upload_document: {e}")
+        import traceback
+        traceback.print_exc()
+        # Giải phóng memory nếu có exception (chỉ khi biến đã được định nghĩa)
+        try:
+            if 'raw_bytes' in locals():
+                del raw_bytes
+        except:
+            pass
+        try:
+            if 'pdf_bytes' in locals() and 'pdf_is_raw' in locals() and not pdf_is_raw:
+                del pdf_bytes
+        except:
+            pass
         return jsonify({"error": f"Lỗi server nội bộ: {e}"}), 500
 
 
