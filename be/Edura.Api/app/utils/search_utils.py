@@ -269,6 +269,44 @@ def calculate_relevance_score(
 # ------------------------------------------------------------
 
 
+def create_normalized_text(title: str = "", summary: str = "", keywords: List[str] | None = None) -> str:
+    """
+    Tạo chuỗi searchText đã normalize từ title, summary, keywords.
+    Dùng để lưu vào MongoDB field 'searchText' cho index và tìm kiếm nhanh.
+    
+    Logic:
+    - Gộp title, summary, keywords thành một chuỗi
+    - Bỏ dấu tiếng Việt
+    - Bỏ khoảng trắng và ký tự đặc biệt
+    - Lowercase
+    
+    Ví dụ:
+        title="Kế toán", summary="Tài liệu về kế toán", keywords=["kế toán", "tài chính"]
+        -> "ketoantailieuketoantaichinh"
+    """
+    parts = []
+    
+    if title:
+        parts.append(title)
+    if summary:
+        parts.append(summary)
+    if keywords:
+        if isinstance(keywords, list):
+            parts.extend([str(k) for k in keywords if k])
+        else:
+            parts.append(str(keywords))
+    
+    # Gộp tất cả lại
+    combined = " ".join(parts)
+    
+    # Normalize: bỏ dấu + bỏ khoảng trắng + lowercase
+    normalized = strip_vn(combined)
+    # Bỏ tất cả ký tự không phải a-z0-9
+    normalized = re.sub(r"[^a-z0-9]+", "", normalized)
+    
+    return normalized
+
+
 def search_in_multiple_fields(query: str, *fields: Union[str, List[str]]) -> bool:
     """
     API boolean đơn giản để filter nhanh.

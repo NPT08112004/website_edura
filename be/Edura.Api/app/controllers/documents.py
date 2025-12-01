@@ -31,7 +31,7 @@ from app.services.aws_service import aws_service
 from app.services.ai_service import ai_service
 from app.services.mongo_service import mongo_collections
 from app.models.document import Document
-from app.utils.search_utils import calculate_relevance_score
+from app.utils.search_utils import calculate_relevance_score, create_normalized_text
 from jwt import ExpiredSignatureError, InvalidTokenError
 from flask import current_app
 from bson import ObjectId
