@@ -719,6 +719,7 @@ def upload_document():
             return jsonify({"error": f"Token không hợp lệ: {e}"}), 401
 
         # Đọc bytes & chuẩn bị
+        # Tối ưu memory: Đọc file và sẽ giải phóng sau khi xử lý xong
         raw_bytes = up_file.read()
         ext = os.path.splitext(secure_filename(up_file.filename))[1].lower().lstrip(".") or "pdf"
 
@@ -890,6 +891,13 @@ def upload_document():
             print("[upload_document] lỗi cộng điểm:", e)
 
 
+        # Giải phóng memory sau khi upload xong
+        del raw_bytes
+        if pdf_bytes and pdf_bytes is not raw_bytes:
+            del pdf_bytes
+        import gc
+        gc.collect()
+        
         payload = {
             "message": "Upload thành công",
             "document_id": str(result.inserted_id),
@@ -1034,21 +1042,30 @@ def get_documents():
             mongo_query = {"$and": ands} if len(ands) > 1 else ands[0] if len(ands) == 1 else {}
 
         # Query documents với MongoDB (tối ưu với searchText index)
-        try:
-            cursor = mongo_collections.documents.find(mongo_query).sort("createdAt", -1)
-        except Exception:
-            try:
-                cursor = mongo_collections.documents.find(mongo_query).sort("created_at", -1)
-            except Exception:
-                cursor = mongo_collections.documents.find(mongo_query)
-
-        all_docs = list(cursor)
+        # Tối ưu memory: Nếu có search, chỉ load và filter từng batch nhỏ
+        search_stripped = search.strip() if search else ""
         
-        # Filter bằng Python + tính điểm relevance
-        search_stripped = search.strip()
         if search_stripped:
+            # Có search: Load từng batch, filter, và collect kết quả
+            # Giới hạn tối đa 1000 documents để tránh OOM
+            MAX_SEARCH_DOCS = 1000
             filtered_docs = []
-            for doc in all_docs:
+            
+            try:
+                cursor = mongo_collections.documents.find(mongo_query).sort("createdAt", -1)
+            except Exception:
+                try:
+                    cursor = mongo_collections.documents.find(mongo_query).sort("created_at", -1)
+                except Exception:
+                    cursor = mongo_collections.documents.find(mongo_query)
+            
+            # Load và filter từng batch
+            batch_size = 100
+            processed = 0
+            for doc in cursor:
+                if processed >= MAX_SEARCH_DOCS:
+                    break
+                
                 title = doc.get("title", "") or ""
                 summary = doc.get("summary", "") or ""
                 keywords = doc.get("keywords", []) or []
@@ -1057,21 +1074,43 @@ def get_documents():
                 if score > 0:
                     doc["_relevance_score"] = score
                     filtered_docs.append(doc)
-            all_docs = filtered_docs
-
+                
+                processed += 1
+                
+                # Giải phóng memory sau mỗi batch
+                if processed % batch_size == 0:
+                    import gc
+                    gc.collect()
+            
             # Sắp xếp theo relevance trước, sau đó theo createdAt/created_at/_id
             def _sort_key_relevance(d):
                 score = d.get("_relevance_score", 0.0)
                 created = d.get("createdAt") or d.get("created_at") or d.get("_id")
                 return (score, created)
 
-            all_docs.sort(key=_sort_key_relevance, reverse=True)
-        
-        # Lấy tổng số documents sau khi lọc
-        total_count = len(all_docs)
-        
-        # Apply pagination
-        docs = all_docs[skip:skip + limit]
+            filtered_docs.sort(key=_sort_key_relevance, reverse=True)
+            all_docs = filtered_docs
+            total_count = len(all_docs)
+            docs = all_docs[skip:skip + limit]
+        else:
+            # Không có search: Dùng pagination trực tiếp từ MongoDB
+            try:
+                cursor = mongo_collections.documents.find(mongo_query).sort("createdAt", -1)
+            except Exception:
+                try:
+                    cursor = mongo_collections.documents.find(mongo_query).sort("created_at", -1)
+                except Exception:
+                    cursor = mongo_collections.documents.find(mongo_query)
+            
+            # Đếm tổng số (chỉ khi cần, có thể skip nếu không quan trọng)
+            try:
+                total_count = mongo_collections.documents.count_documents(mongo_query)
+            except Exception:
+                # Fallback: đếm bằng cách load (chỉ khi thực sự cần)
+                total_count = len(list(cursor.clone()))
+            
+            # Apply pagination trực tiếp từ cursor
+            docs = list(cursor.skip(skip).limit(limit))
 
         # Chuẩn bị map thống kê phản ứng/bình luận
         doc_ids = [doc.get("_id") for doc in docs if doc.get("_id")]

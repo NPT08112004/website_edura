@@ -44,10 +44,13 @@ def create_app():
     app.config["SECRET_KEY"] = flask_secret
     app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB
 
-    # CORS
+    # CORS - Cấu hình cho production
     cors_origins = os.getenv("CORS_ORIGINS", "*")
     if cors_origins != "*":
         cors_origins = [origin.strip() for origin in cors_origins.split(",")]
+    else:
+        # Nếu là "*", cho phép tất cả origins (cho development)
+        cors_origins = "*"
 
     CORS(
         app,
@@ -63,6 +66,9 @@ def create_app():
         expose_headers=["Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     )
+    
+    # Log CORS config để debug
+    print(f"[CORS] Configured origins: {cors_origins}")
 
     # Swagger
     swagger_template = {
