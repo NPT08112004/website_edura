@@ -207,7 +207,25 @@ export default function QuizList() {
       localStorage.setItem('current_quiz', JSON.stringify(payload));
       window.location.href = `/quiz/${id}`;
     } catch (e) {
-      if (String(e.message).includes('NOT_ENOUGH_POINTS')) {
+      const errorMessage = String(e.message || '');
+      
+      // Kiểm tra lỗi authentication
+      if (errorMessage.includes('Auth lỗi') || 
+          errorMessage.includes('Thiếu Bearer token') || 
+          errorMessage.includes('Bearer token') ||
+          errorMessage.includes('Invalid or expired token') ||
+          errorMessage.includes('Authentication failed')) {
+        const ret = await Swal.fire({
+          icon: 'warning',
+          title: 'Yêu cầu đăng nhập',
+          text: 'Vui lòng đăng nhập để bắt đầu làm bài.',
+          confirmButtonText: 'Đăng nhập',
+          showCancelButton: false
+        });
+        if (ret.isConfirmed) {
+          window.location.href = '/login';
+        }
+      } else if (errorMessage.includes('NOT_ENOUGH_POINTS')) {
         const ret = await Swal.fire({
           icon: 'warning',
           title: 'Thiếu điểm',

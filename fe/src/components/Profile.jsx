@@ -84,12 +84,7 @@ export default function ProfilePage() {
   const onSave = async () => {
     setSaving(true);
     try {
-      const trimmedName = fullName.trim();
       let updatedAvatarUrl = me?.avatarUrl;
-
-      if (trimmedName) {
-        await updateMyProfile(trimmedName);
-      }
 
       if (avatarFile) {
         const r = await uploadMyAvatar(avatarFile);
@@ -100,13 +95,11 @@ export default function ProfilePage() {
 
       setMe((prev) => ({
         ...(prev || {}),
-        fullName: trimmedName || prev?.fullName,
         avatarUrl: updatedAvatarUrl,
       }));
 
       try {
         const stored = JSON.parse(localStorage.getItem("edura_user") || "{}");
-        if (trimmedName) stored.fullName = trimmedName;
         if (updatedAvatarUrl) stored.avatarUrl = updatedAvatarUrl;
         localStorage.setItem("edura_user", JSON.stringify(stored));
       } catch {}
@@ -308,6 +301,39 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
+      <button 
+        className="profile-back-home" 
+        onClick={() => (window.location.href = "/")}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          zIndex: 1000,
+          padding: '10px 16px',
+          backgroundColor: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: '500',
+          color: '#374151',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = '#f9fafb';
+          e.target.style.borderColor = '#2563eb';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = '#fff';
+          e.target.style.borderColor = '#e5e7eb';
+        }}
+      >
+        ← Về trang chủ
+      </button>
       <header className="profile-hero">
         <div className="profile-hero__bg" />
         <div className="profile-hero__waves" />
@@ -332,7 +358,6 @@ export default function ProfilePage() {
             </div>
 
             <h1 className="profile-title">{me?.fullName?.trim() || me?.username || "Người dùng"}</h1>
-            <p className="profile-subtitle">{me?.email ? `Email: ${me.email}` : "Chưa cập nhật email."}</p>
 
             <div className="profile-stats">
               <div className="profile-stat">
@@ -366,32 +391,17 @@ export default function ProfilePage() {
             <div>
               <h2 className="profile-card__title">Chỉnh sửa thông tin cá nhân</h2>
               <p className="profile-card__description">
-                Cập nhật họ tên và ảnh đại diện để mọi người dễ dàng nhận ra bạn hơn.
+                Cập nhật ảnh đại diện để mọi người dễ dàng nhận ra bạn hơn.
               </p>
             </div>
-            <button className="profile-card__home" onClick={() => (window.location.href = "/")}>
-              ← Về trang chủ
-            </button>
           </div>
 
           <div className="profile-form-grid">
             <div className="profile-form">
-              <label className="profile-form__label">Họ và tên</label>
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="profile-form__input"
-                placeholder="Nhập họ tên của bạn"
-              />
-
               <div className="profile-form__row">
                 <div>
                   <div className="profile-form__label">Username</div>
                   <div className="profile-form__readOnly">{me?.username || "-"}</div>
-                </div>
-                <div>
-                  <div className="profile-form__label">Email</div>
-                  <div className="profile-form__readOnly">{me?.email || "-"}</div>
                 </div>
               </div>
             </div>
@@ -400,7 +410,6 @@ export default function ProfilePage() {
               <h3 className="profile-tips__title">Lưu ý khi cập nhật</h3>
               <ul className="profile-tips__list">
                 <li>Ảnh nên có kích thước tối thiểu 300×300px để hiển thị sắc nét.</li>
-                <li>Họ tên sẽ được hiển thị công khai cho người dùng khác.</li>
                 <li>Định dạng ảnh hỗ trợ: PNG, JPG, JPEG, WEBP.</li>
               </ul>
             </aside>

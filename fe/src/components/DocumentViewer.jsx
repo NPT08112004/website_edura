@@ -18,6 +18,8 @@ import {
   updateDocumentReaction,
   getDocumentComments,
   postDocumentComment,
+  toggleFavorite,
+  getMySavedDocuments,
 } from "../api";
 import Sidebar from "./Sidebar";
 import MessageDropdown from "./MessageDropdown";
@@ -70,6 +72,8 @@ export default function DocumentViewer({ documentId, onBack }) {
   const [commentInput, setCommentInput] = useState("");
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -116,6 +120,32 @@ export default function DocumentViewer({ documentId, onBack }) {
     })();
     return () => { alive = false; };
   }, [documentId]);
+
+  // Load trạng thái favorite khi document được load và user đã đăng nhập
+  useEffect(() => {
+    if (!isLoggedIn || !documentId) {
+      setIsFavorite(false);
+      return;
+    }
+
+    let alive = true;
+    (async () => {
+      try {
+        const savedDocs = await getMySavedDocuments();
+        if (alive && savedDocs?.items) {
+          const isSaved = savedDocs.items.some(
+            (doc) => doc._id === documentId || doc.id === documentId
+          );
+          setIsFavorite(isSaved);
+        }
+      } catch (error) {
+        console.warn("Không thể kiểm tra trạng thái lưu:", error);
+        // Không hiển thị lỗi cho user, chỉ set về false
+        if (alive) setIsFavorite(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [documentId, isLoggedIn]);
 
   useEffect(() => {
     if (meta) {
@@ -450,6 +480,51 @@ export default function DocumentViewer({ documentId, onBack }) {
     navigator.clipboard.writeText(window.location.href);
     Swal.fire({ icon: "success", title: "Đã sao chép liên kết", timer: 1200, showConfirmButton: false });
   }
+
+  const handleToggleFavorite = async () => {
+    if (!isLoggedIn) {
+      const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Yêu cầu đăng nhập',
+        text: 'Vui lòng đăng nhập để lưu tài liệu.',
+        confirmButtonText: 'Đăng nhập',
+        showCancelButton: true,
+        cancelButtonText: 'Hủy'
+      });
+      if (result.isConfirmed) {
+        window.location.href = '/login';
+      }
+      return;
+    }
+
+    if (favoriteLoading) return;
+
+    setFavoriteLoading(true);
+    try {
+      const newFavoriteStatus = !isFavorite;
+      await toggleFavorite(documentId, newFavoriteStatus);
+      setIsFavorite(newFavoriteStatus);
+      
+      Swal.fire({
+        icon: 'success',
+        title: newFavoriteStatus ? 'Đã lưu' : 'Đã bỏ lưu',
+        text: newFavoriteStatus 
+          ? 'Tài liệu đã được lưu vào danh sách yêu thích của bạn.' 
+          : 'Tài liệu đã được bỏ khỏi danh sách yêu thích.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: error?.message || 'Không thể lưu/bỏ lưu tài liệu. Vui lòng thử lại.'
+      });
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
 
   const fetchReactions = async () => {
     try {
@@ -951,7 +1026,19 @@ export default function DocumentViewer({ documentId, onBack }) {
           </div>
           <div className="topbar-center">
             <button className="btn green" onClick={handleDownload}><Download size={18} /> Download</button>
-            <button className="icon-btn" title="Lưu"><Bookmark size={18} /></button>
+            <button 
+              className={`icon-btn ${isFavorite ? 'is-favorite' : ''}`} 
+              title={isFavorite ? "Bỏ lưu" : "Lưu"}
+              onClick={handleToggleFavorite}
+              disabled={favoriteLoading}
+              style={isFavorite ? { 
+                backgroundColor: '#fef3c7', 
+                borderColor: '#fbbf24',
+                color: '#f59e0b'
+              } : {}}
+            >
+              <Bookmark size={18} fill={isFavorite ? '#f59e0b' : 'none'} />
+            </button>
             <button className="icon-btn" title="In" onClick={() => window.open(rawUrl, "_blank")}><Printer size={18} /></button>
             <button className="icon-btn" title="Chia sẻ" onClick={copyLink}><Share2 size={18} /></button>
           </div>
@@ -1041,6 +1128,18 @@ export default function DocumentViewer({ documentId, onBack }) {
           </div>
           <div className="left-actions">
             <button className="btn wide green" onClick={handleDownload}><Download size={18} /> Download</button>
+            <button 
+              className={`btn wide ${isFavorite ? 'is-favorite' : ''}`}
+              onClick={handleToggleFavorite}
+              disabled={favoriteLoading}
+              style={isFavorite ? { 
+                backgroundColor: '#fef3c7', 
+                borderColor: '#fbbf24',
+                color: '#f59e0b'
+              } : {}}
+            >
+              <Bookmark size={18} fill={isFavorite ? '#f59e0b' : 'none'} /> {isFavorite ? 'Đã lưu' : 'Lưu tài liệu'}
+            </button>
             <button className="btn wide" onClick={() => window.open(rawUrl, "_blank")}><Printer size={18} /> Mở tab mới</button>
             <button className="btn wide" onClick={copyLink}><Share2 size={18} /> Copy link</button>
           </div>

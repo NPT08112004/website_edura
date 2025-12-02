@@ -354,6 +354,11 @@ export async function getMySavedDocuments() {
   return http("GET", "/api/mobile/documents/saved");
 }
 
+// Toggle lưu/bỏ lưu tài liệu (favorite)
+export async function toggleFavorite(docId, favorite = true) {
+  return http("POST", `/api/mobile/documents/favorite/${docId}`, { favorite });
+}
+
 /* -------------------- Chat -------------------- */
 export async function getChatHistory(documentId, targetUserId) {
   const params = new URLSearchParams({ documentId, targetUserId });
