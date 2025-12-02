@@ -1,7 +1,7 @@
 // src/components/Profile.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, Eye, Link2, Trash2, ExternalLink, FileText, Clock3, Bookmark } from "lucide-react";
+import { BookOpen, Eye, Link2, Trash2, ExternalLink, FileText, Clock3, Bookmark, Home, Upload, Coins, TrendingUp, Sparkles } from "lucide-react";
 import {
   getMyProfile,
   updateMyProfile,
@@ -306,33 +306,39 @@ export default function ProfilePage() {
         onClick={() => (window.location.href = "/")}
         style={{
           position: 'absolute',
-          top: '20px',
-          left: '20px',
+          top: '24px',
+          left: '24px',
           zIndex: 1000,
-          padding: '10px 16px',
-          backgroundColor: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
+          padding: '12px 20px',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+          borderRadius: '12px',
           cursor: 'pointer',
           fontSize: '14px',
-          fontWeight: '500',
+          fontWeight: '600',
           color: '#374151',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          transition: 'all 0.2s'
+          gap: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          backdropFilter: 'blur(10px)'
         }}
         onMouseEnter={(e) => {
-          e.target.style.backgroundColor = '#f9fafb';
+          e.target.style.backgroundColor = '#fff';
           e.target.style.borderColor = '#2563eb';
+          e.target.style.transform = 'translateY(-2px)';
+          e.target.style.boxShadow = '0 8px 20px rgba(37, 99, 235, 0.15), 0 4px 8px rgba(0,0,0,0.06)';
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = '#fff';
-          e.target.style.borderColor = '#e5e7eb';
+          e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+          e.target.style.borderColor = 'rgba(148, 163, 184, 0.2)';
+          e.target.style.transform = 'translateY(0)';
+          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)';
         }}
       >
-        ← Về trang chủ
+        <Home size={18} />
+        <span>Về trang chủ</span>
       </button>
       <header className="profile-hero">
         <div className="profile-hero__bg" />
@@ -345,7 +351,8 @@ export default function ProfilePage() {
               <div className="profile-hero__avatar-ring" />
             </div>
             <label className="profile-hero__upload">
-              Thay ảnh
+              <Upload size={16} />
+              <span>Thay ảnh</span>
               <input type="file" accept="image/*" onChange={onPickAvatar} hidden />
             </label>
           </div>
@@ -361,21 +368,33 @@ export default function ProfilePage() {
 
             <div className="profile-stats">
               <div className="profile-stat">
+                <div className="profile-stat__icon" style={{ background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(79, 70, 229, 0.2))' }}>
+                  <FileText size={24} style={{ color: '#3b82f6' }} />
+                </div>
                 <div className="profile-stat__label">Tài liệu</div>
                 <div className="profile-stat__value">{myDocs.length}</div>
                 <p className="profile-stat__hint">Đã đăng tải</p>
               </div>
               <div className="profile-stat">
+                <div className="profile-stat__icon" style={{ background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))' }}>
+                  <Bookmark size={24} style={{ color: '#f59e0b' }} />
+                </div>
                 <div className="profile-stat__label">Đã lưu</div>
                 <div className="profile-stat__value">{processedSavedDocs.length}</div>
                 <p className="profile-stat__hint">Tài liệu yêu thích</p>
               </div>
               <div className="profile-stat">
+                <div className="profile-stat__icon" style={{ background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2))' }}>
+                  <Eye size={24} style={{ color: '#22c55e' }} />
+                </div>
                 <div className="profile-stat__label">Lịch sử</div>
                 <div className="profile-stat__value">{history.length}</div>
                 <p className="profile-stat__hint">Tài liệu đã xem</p>
               </div>
               <div className="profile-stat">
+                <div className="profile-stat__icon" style={{ background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.2))' }}>
+                  <Coins size={24} style={{ color: '#a855f7' }} />
+                </div>
                 <div className="profile-stat__label">Điểm</div>
                 <div className="profile-stat__value">{me?.points ?? 0}</div>
                 <p className="profile-stat__hint">Điểm tích lũy</p>
