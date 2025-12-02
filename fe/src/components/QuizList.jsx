@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { listQuizzesAll, startQuiz, topupPoints, getMyProfile, checkPaymentStatus } from '../api';
+import { listQuizzesAll, startQuiz, getMyProfile, checkPaymentStatus } from '../api';
 import Swal from 'sweetalert2';
 import { Plus, Menu, Search, X, Globe, Play, Calendar, FileText, User, School, Tag, ChevronLeft, ChevronRight, Coins, Wallet } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -217,19 +217,8 @@ export default function QuizList() {
           cancelButtonText: 'Hủy'
         });
         if (ret.isConfirmed) {
-          try {
-            const result = await topupPoints(20000);
-            // Cập nhật điểm sau khi nạp
-            if (result.balance !== undefined) {
-              setUserPoints(result.balance);
-              const updatedUser = { ...user, points: result.balance };
-              localStorage.setItem('edura_user', JSON.stringify(updatedUser));
-              setUser(updatedUser);
-            }
-            Swal.fire('Thành công', 'Bạn đã được +50 điểm. Bấm Bắt đầu lại để vào làm bài.', 'success');
-          } catch (err) {
-            Swal.fire('Lỗi', err.message || 'Nạp thất bại', 'error');
-          }
+          // Mở modal nạp tiền thay vì tự động cộng điểm
+          setIsTopupModalOpen(true);
         }
       } else {
         Swal.fire('Lỗi', e.message || 'Không bắt đầu được', 'error');

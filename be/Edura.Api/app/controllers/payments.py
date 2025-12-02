@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from bson import ObjectId
+from bson.errors import InvalidId
 import math
 import uuid
 import json
+import jwt
 
 from app.services.mongo_service import mongo_collections as dbs
 from app.controllers.auth import decode_jwt_strict
@@ -571,7 +573,14 @@ def check_payment_status(order_id):
     Kiểm tra trạng thái thanh toán của một order
     """
     try:
-        user_id = _cur_user()  # Xác thực user
+        try:
+            user_id = _cur_user()  # Xác thực user
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, ValueError, InvalidId) as e:
+            print(f"[CHECK PAYMENT STATUS ERROR] Authentication failed: {e}")
+            return jsonify({"error": "Invalid or expired token"}), 401
+        except Exception as e:
+            print(f"[CHECK PAYMENT STATUS ERROR] Authentication error: {e}")
+            return jsonify({"error": "Authentication failed"}), 401
         
         print(f"[CHECK PAYMENT STATUS] User {user_id} checking status for order {order_id}")
         
@@ -581,7 +590,24 @@ def check_payment_status(order_id):
             return jsonify({"error": "Transaction not found"}), 404
         
         # Kiểm tra xem transaction có thuộc về user này không
-        if transaction.get("userId") != user_id:
+        # Normalize cả hai giá trị về ObjectId để tránh lỗi type mismatch
+        transaction_user_id = transaction.get("userId")
+        if not transaction_user_id:
+            print(f"[CHECK PAYMENT STATUS ERROR] Transaction {order_id} missing userId")
+            return jsonify({"error": "Transaction data invalid"}), 500
+        
+        # Chuyển về ObjectId nếu là string hoặc type khác
+        try:
+            if isinstance(transaction_user_id, str):
+                transaction_user_id = ObjectId(transaction_user_id)
+            elif not isinstance(transaction_user_id, ObjectId):
+                transaction_user_id = ObjectId(str(transaction_user_id))
+        except (InvalidId, ValueError, TypeError) as e:
+            print(f"[CHECK PAYMENT STATUS ERROR] Invalid userId format in transaction: {transaction_user_id}, error: {e}")
+            return jsonify({"error": "Transaction data invalid"}), 500
+        
+        # So sánh ObjectId với ObjectId
+        if transaction_user_id != user_id:
             print(f"[CHECK PAYMENT STATUS ERROR] Unauthorized: user {user_id} trying to check order {order_id} owned by {transaction.get('userId')}")
             return jsonify({"error": "Unauthorized"}), 403
         
