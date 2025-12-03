@@ -236,14 +236,17 @@
 }
 
 .hero-stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-dark);
+  font-size: 28px;
+  font-weight: 900;
+  color: #000000;
+  letter-spacing: -0.5px;
 }
 
 .hero-stat-label {
-  color: var(--text-gray);
+  color: #1e293b;
   font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
 .hero-right {

@@ -141,11 +141,33 @@ export default function QuizList() {
       setAllItems(quizzes);
     } catch (e) {
       console.error(e);
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi',
-        text: e.message || 'Không thể tải danh sách trắc nghiệm'
-      });
+      const errorMessage = String(e.message || '');
+      
+      // Kiểm tra lỗi authentication
+      if (errorMessage.includes('Auth lỗi') || 
+          errorMessage.includes('Thiếu Bearer token') || 
+          errorMessage.includes('Bearer token') ||
+          errorMessage.includes('Invalid or expired token') ||
+          errorMessage.includes('Authentication failed') ||
+          errorMessage.includes('401') ||
+          errorMessage.includes('Unauthorized')) {
+        const ret = await Swal.fire({
+          icon: 'warning',
+          title: 'Bạn chưa đăng nhập',
+          text: 'Vui lòng đăng nhập để xem danh sách trắc nghiệm.',
+          confirmButtonText: 'Đăng nhập',
+          showCancelButton: false
+        });
+        if (ret.isConfirmed) {
+          window.location.href = '/login';
+        }
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: e.message || 'Không thể tải danh sách trắc nghiệm'
+        });
+      }
     } finally {
       setLoading(false);
     }

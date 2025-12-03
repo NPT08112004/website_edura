@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { createQuizFromDoc, getSchools, getCategories } from '../api';
-import { FileText, Upload, Menu, Search, Globe } from 'lucide-react';
+import { FileText, Upload, Menu, Search, Globe, AlertCircle, CheckCircle2, Info, Lightbulb } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MessageDropdown from './MessageDropdown';
 import Logo from './Logo';
@@ -195,12 +195,13 @@ export default function QuizUpload() {
         </div>
       </header>
       <div className="quiz-page" style={{ paddingTop: '80px' }}>
-        <div className="quiz-upload-container">
-        <div className="quiz-upload-header">
-          <h2>Tạo trắc nghiệm từ DOC/DOCX</h2>
-        </div>
+        <div className="quiz-upload-wrapper">
+          <div className="quiz-upload-main">
+            <div className="quiz-upload-header">
+              <h2>Tạo trắc nghiệm từ DOC/DOCX</h2>
+            </div>
 
-        <form onSubmit={onSubmit} className="quiz-upload-form">
+            <form onSubmit={onSubmit} className="quiz-upload-form">
           <div className="quiz-form-group">
             <label htmlFor="quiz-title">
               Tên bộ trắc nghiệm <span style={{ color: 'var(--red)' }}>*</span>
@@ -299,6 +300,56 @@ export default function QuizUpload() {
             )}
           </button>
         </form>
+          </div>
+
+          {/* Hướng dẫn nổi bật - Sidebar */}
+          <div className="quiz-guide-section">
+            <div className="quiz-guide-header">
+              <Lightbulb size={24} />
+              <h3>Hướng dẫn tạo bài trắc nghiệm</h3>
+            </div>
+            <div className="quiz-guide-content">
+              <div className="quiz-guide-item">
+                <div className="quiz-guide-icon">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div className="quiz-guide-text">
+                  <strong>Định dạng file:</strong> Chỉ chấp nhận file .doc hoặc .docx
+                </div>
+              </div>
+              <div className="quiz-guide-item">
+                <div className="quiz-guide-icon">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div className="quiz-guide-text">
+                  <strong>Định dạng câu hỏi:</strong> Mỗi câu hỏi nên bắt đầu bằng số thứ tự (1., 2., 3., ...)
+                </div>
+              </div>
+              <div className="quiz-guide-item">
+                <div className="quiz-guide-icon">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div className="quiz-guide-text">
+                  <strong>Đáp án đúng:</strong> Đánh dấu đáp án đúng bằng cách <strong>in đậm (Bold)</strong> hoặc đánh dấu <strong>+</strong> trước đáp án
+                </div>
+              </div>
+              <div className="quiz-guide-item">
+                <div className="quiz-guide-icon">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div className="quiz-guide-text">
+                  <strong>Đáp án sai:</strong> Đánh dấu <strong>-</strong> trước các đáp án sai (tùy chọn)
+                </div>
+              </div>
+              <div className="quiz-guide-note">
+                <Info size={18} />
+                <div>
+                  <strong>Lưu ý:</strong> Hệ thống sẽ tự động trích xuất câu hỏi và đáp án từ file của bạn. 
+                  Nếu file không theo định dạng chuẩn, hệ thống sẽ sử dụng AI để xử lý.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

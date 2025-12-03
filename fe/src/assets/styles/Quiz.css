@@ -616,6 +616,28 @@
 }
 
 /* Quiz Upload Page */
+.quiz-upload-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+  align-items: start;
+  padding: 0 24px;
+}
+
+.quiz-upload-main {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 48px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  animation: fadeInUp 0.5s ease-out;
+  position: relative;
+  z-index: 1;
+}
+
 .quiz-upload-container {
   max-width: 800px;
   margin: 0 auto;
@@ -706,6 +728,154 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+/* Quiz Guide Section */
+.quiz-guide-section {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+  animation: slideInRight 0.5s ease-out;
+  position: sticky;
+  top: 100px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.quiz-guide-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(251, 191, 36, 0.3);
+}
+
+.quiz-guide-header svg {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.quiz-guide-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #92400e;
+  letter-spacing: -0.3px;
+}
+
+.quiz-guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.quiz-guide-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  border-left: 3px solid #f59e0b;
+  transition: all 0.2s ease;
+}
+
+.quiz-guide-item:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateX(2px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+}
+
+.quiz-guide-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.quiz-guide-icon svg {
+  color: white;
+  stroke-width: 2.5;
+}
+
+.quiz-guide-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #78350f;
+}
+
+.quiz-guide-text strong {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.quiz-guide-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  border-left: 3px solid #f59e0b;
+  margin-top: 4px;
+  transition: all 0.2s ease;
+}
+
+.quiz-guide-note:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateX(2px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+}
+
+.quiz-guide-note svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 2px;
+  width: 20px;
+  height: 20px;
+}
+
+.quiz-guide-note div {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #78350f;
+}
+
+.quiz-guide-note strong {
+  color: #92400e;
+  font-weight: 700;
 }
 
 .quiz-submit-form-btn {
@@ -864,9 +1034,44 @@
   user-select: none;
 }
 
+/* Responsive for Quiz Upload */
+@media (max-width: 1024px) {
+  .quiz-upload-wrapper {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .quiz-guide-section {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+}
+
 @media (max-width: 768px) {
   .quiz-page {
     padding: 16px;
+  }
+
+  .quiz-upload-wrapper {
+    padding: 0 16px;
+    gap: 20px;
+  }
+
+  .quiz-upload-main {
+    padding: 24px;
+  }
+
+  .quiz-upload-header h2 {
+    font-size: 24px;
+  }
+
+  .quiz-guide-section {
+    padding: 20px;
+  }
+
+  .quiz-guide-header h3 {
+    font-size: 18px;
   }
 
   .quiz-list {
