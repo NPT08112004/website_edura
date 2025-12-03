@@ -145,6 +145,8 @@
   gap: 48px;
   align-items: center;
   margin-bottom: 72px;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-badge {
@@ -227,6 +229,8 @@
   display: flex;
   gap: 32px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 3;
 }
 
 .hero-stat {
