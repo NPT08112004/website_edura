@@ -168,12 +168,14 @@ def list_documents():
                 return (score, created)
 
             all_docs = sorted(filtered_docs, key=_sort_key_relevance, reverse=True)
+            filtered_docs = all_docs  # Đảm bảo filtered_docs được định nghĩa
         else:
             # Không có search query: Sắp xếp theo createdAt (mới -> cũ)
             def _sort_key_date(d):
                 return d.get("createdAt") or d.get("created_at") or d.get("_id")
 
             all_docs.sort(key=_sort_key_date, reverse=True)
+            filtered_docs = all_docs  # Khi không có search, dùng tất cả docs đã sắp xếp
             
         # 4) Phân trang sau khi lọc và sắp xếp
         total = len(filtered_docs)
