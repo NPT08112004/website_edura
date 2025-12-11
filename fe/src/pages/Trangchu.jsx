@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Flame,
   Lightbulb,
+  Download,
 } from "lucide-react";
 import MessageDropdown from "../components/MessageDropdown";
 import Footer from "../components/Footer";
@@ -31,6 +32,7 @@ export default function Trangchu() {
       return {};
     }
   });
+  const APK_DOWNLOAD_URL = "/edura-app.apk";
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -265,6 +267,10 @@ export default function Trangchu() {
     }
   };
 
+  const handleDownloadApp = () => {
+    window.open(APK_DOWNLOAD_URL, "_blank");
+  };
+
   const handleUploadClick = () => {
     window.location.href = "/upload";
   };
@@ -307,6 +313,18 @@ export default function Trangchu() {
             <span>Tiếng Việt</span>
           </div>
           <div className="header-action-buttons">
+            <a
+              className="header-download-btn"
+              href={APK_DOWNLOAD_URL}
+              download
+              onClick={(e) => {
+                e.preventDefault();
+                handleDownloadApp();
+              }}
+            >
+              <Download size={16} />
+              <span>Tải app</span>
+            </a>
             <button className="header-upload-btn" onClick={handleUploadClick}>
               Tải tài liệu lên
             </button>
