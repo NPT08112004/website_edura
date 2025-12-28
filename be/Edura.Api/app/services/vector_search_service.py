@@ -8,17 +8,35 @@ Sử dụng cosine similarity để tìm documents tương tự
 import os
 import logging
 from typing import Dict, List, Optional, Tuple
-import numpy as np
 from bson import ObjectId
 
+# Try to import numpy
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    np = None
+    logging.warning("numpy not available. Install: pip install numpy")
+
+# Try to import embedding service
+try:
+    from app.services.embedding_service import (
+        generate_embedding,
+        generate_document_embedding,
+        cosine_similarity,
+        USE_EMBEDDING_SEARCH,
+        SENTENCE_TRANSFORMERS_AVAILABLE
+    )
+except ImportError as e:
+    logging.warning(f"Failed to import embedding_service: {e}")
+    USE_EMBEDDING_SEARCH = False
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
+    generate_embedding = None
+    generate_document_embedding = None
+    cosine_similarity = None
+
 from app.services.mongo_service import mongo_collections
-from app.services.embedding_service import (
-    generate_embedding,
-    generate_document_embedding,
-    cosine_similarity,
-    USE_EMBEDDING_SEARCH,
-    SENTENCE_TRANSFORMERS_AVAILABLE
-)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +49,7 @@ class VectorSearchService:
     """Service xử lý vector-based semantic search."""
     
     @staticmethod
-    def get_document_embedding_from_db(document_id: str) -> Optional[np.ndarray]:
+    def get_document_embedding_from_db(document_id: str):
         """
         Lấy embedding vector của document từ MongoDB.
         
@@ -41,6 +59,9 @@ class VectorSearchService:
         Returns:
             Embedding vector hoặc None
         """
+        if not NUMPY_AVAILABLE:
+            return None
+        
         try:
             doc = mongo_collections.documents.find_one(
                 {"_id": ObjectId(document_id)},
@@ -56,7 +77,7 @@ class VectorSearchService:
         return None
     
     @staticmethod
-    def save_document_embedding(document_id: str, embedding: np.ndarray):
+    def save_document_embedding(document_id: str, embedding):
         """
         Lưu embedding vector vào MongoDB.
         
@@ -64,9 +85,15 @@ class VectorSearchService:
             document_id: Document ID (string)
             embedding: Embedding vector (numpy array)
         """
+        if not NUMPY_AVAILABLE or embedding is None:
+            return
+        
         try:
             # Convert numpy array to list for MongoDB
-            embedding_list = embedding.tolist()
+            if hasattr(embedding, 'tolist'):
+                embedding_list = embedding.tolist()
+            else:
+                embedding_list = list(embedding)
             
             mongo_collections.documents.update_one(
                 {"_id": ObjectId(document_id)},
@@ -76,7 +103,7 @@ class VectorSearchService:
             logger.error(f"Error saving embedding to DB: {e}")
     
     @staticmethod
-    def generate_and_save_embedding(document: Dict) -> Optional[np.ndarray]:
+    def generate_and_save_embedding(document: Dict):
         """
         Generate và lưu embedding cho một document.
         
@@ -86,6 +113,9 @@ class VectorSearchService:
         Returns:
             Embedding vector hoặc None
         """
+        if not NUMPY_AVAILABLE or generate_document_embedding is None:
+            return None
+        
         doc_id = str(document.get("_id", ""))
         if not doc_id:
             return None
@@ -126,7 +156,10 @@ class VectorSearchService:
         if not query or not query.strip():
             return []
         
-        if not USE_EMBEDDING_SEARCH or not SENTENCE_TRANSFORMERS_AVAILABLE:
+        if not USE_EMBEDDING_SEARCH or not SENTENCE_TRANSFORMERS_AVAILABLE or not NUMPY_AVAILABLE:
+            return []
+        
+        if generate_embedding is None or cosine_similarity is None:
             return []
         
         # Generate query embedding
