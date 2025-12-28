@@ -233,13 +233,13 @@ def calculate_relevance_score(
     
     title_normalized_no_space = ""
     if title:
-        title_normalized = strip_vn(title)
+    title_normalized = strip_vn(title)
         title_normalized_no_space = re.sub(r"[^a-z0-9]+", "", title_normalized)
     
     keywords_normalized_no_space = ""
     keywords_text = " ".join([str(k) for k in (keywords or []) if k])
     if keywords_text:
-        keywords_normalized = strip_vn(keywords_text)
+    keywords_normalized = strip_vn(keywords_text)
         keywords_normalized_no_space = re.sub(r"[^a-z0-9]+", "", keywords_normalized)
 
     # Kiểm tra match không dấu, không khoảng cách

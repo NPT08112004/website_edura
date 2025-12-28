@@ -131,7 +131,7 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
       clearTimeout(timer);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
-      }
+    }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filters, currentPage]);
@@ -208,9 +208,9 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
     } catch (error) {
       // Không log error nếu request bị cancel
       if (error.name !== 'AbortError') {
-        console.error('Error loading documents:', error);
-        setDocuments([]);
-        setTotalDocuments(0);
+      console.error('Error loading documents:', error);
+      setDocuments([]);
+      setTotalDocuments(0);
       }
     } finally {
       setIsLoading(false);

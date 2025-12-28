@@ -1186,13 +1186,13 @@ def get_documents():
                 pass
 
         # Trả về với pagination metadata
-        response = {
-            "documents": result,
-            "total": total_count,
+            response = {
+                "documents": result,
+                "total": total_count,
             "page": params["page"],
             "limit": params["limit"],
             "totalPages": search_result["totalPages"]
-        }
+            }
         
         return jsonify(response), 200
 

@@ -57,6 +57,13 @@ Trên Render Dashboard → **Environment** tab, đảm bảo có:
 - `MONGO_CONNECTION_STRING`
 - `DATABASE_NAME`
 
+**Lưu ý về PORT:**
+- Render **tự động set PORT** cho web services
+- **KHÔNG cần** set PORT manually trong Environment Variables
+- Nếu logs hiển thị "PORT environment variable: NOT SET", có thể là:
+  - Render chưa set PORT (hiếm) → App sẽ dùng fallback port 5000
+  - Hoặc app crash trước khi đọc PORT → Xem logs để tìm lỗi cụ thể
+
 ### Bước 3: Kiểm tra Dependencies
 
 Nếu dùng embedding search, đảm bảo:
@@ -104,6 +111,24 @@ Kiểm tra:
 - [ ] Deploy lại trên Render
 - [ ] Kiểm tra logs sau khi deploy
 
+## ⚠️ Vấn đề PORT không được set
+
+Nếu logs hiển thị `PORT environment variable: NOT SET`:
+
+1. **Đây có thể là bình thường:**
+   - Render thường set PORT tự động khi deploy
+   - App sẽ dùng fallback port 5000
+   - Nếu app bind thành công vào port 5000, Render sẽ detect được
+
+2. **Nếu vẫn lỗi "no open ports detected":**
+   - App có thể crash **trước khi bind vào port**
+   - Xem logs để tìm `[ERROR]` messages
+   - Kiểm tra xem có lỗi import hoặc initialization không
+
+3. **Không nên set PORT manually:**
+   - Render tự quản lý PORT
+   - Set PORT manually có thể gây conflict
+
 ## 🔍 Debug Tips
 
 ### Nếu vẫn lỗi:
@@ -111,6 +136,7 @@ Kiểm tra:
 1. **Xem logs chi tiết:**
    - Tìm `[ERROR]` hoặc `Traceback`
    - Copy full error message
+   - Kiểm tra xem có `[STARTUP] Starting server on port` không
 
 2. **Kiểm tra imports:**
    ```python
