@@ -127,16 +127,33 @@ def search_documents():
         # 2) Query tất cả documents (hoặc với filters)
         docs = list(mongo_collections.documents.find(base_match, projection))
 
-        # 3) Filter + tính điểm relevance bằng Python
+        # 3) Load categories trước để join với documents
+        category_ids_for_search = {d.get("categoryId") for d in docs if d.get("categoryId")}
+        category_map_for_search = {}
+        if category_ids_for_search:
+            for c in mongo_collections.categories.find(
+                {"_id": {"$in": list(category_ids_for_search)}}, {"name": 1}
+            ):
+                category_map_for_search[c["_id"]] = c.get("name", "")
+        
+        # 4) Filter + tính điểm relevance bằng Python
+        # THỨ TỰ ƯU TIÊN: Category > Title > Keywords
         q_stripped = q.strip()
         if q_stripped:
             filtered = []
             for d in docs:
                 title = d.get("title", "") or ""
                 keywords = d.get("keywords", []) or []
-                summary = d.get("summary", "") or ""
+                
+                # Lấy category name
+                category_name = ""
+                cid = d.get("categoryId")
+                if cid:
+                    category_name = category_map_for_search.get(cid, "")
 
-                score = calculate_relevance_score(q_stripped, title, keywords, summary)
+                # Tính relevance score theo thứ tự ưu tiên: Category > Title > Keywords
+                # Hỗ trợ tìm kiếm không dấu và không khoảng cách
+                score = calculate_relevance_score(q_stripped, title, keywords, category_name)
                 if score > 0:
                     d["_relevance_score"] = score
                     filtered.append(d)
@@ -144,7 +161,7 @@ def search_documents():
             # Không có search query, trả về tất cả
             filtered = docs
 
-        # 4) Join tên trường/thể loại/người đăng (một lượt rồi map)
+        # 5) Join tên trường/thể loại/người đăng (một lượt rồi map)
         school_ids = {d.get("schoolId") for d in filtered if d.get("schoolId")}
         category_ids = {d.get("categoryId") for d in filtered if d.get("categoryId")}
         user_ids = {d.get("userId") for d in filtered if d.get("userId")}
@@ -171,13 +188,15 @@ def search_documents():
             ):
                 user_map[u["_id"]] = _uploader_name(u)
 
-        # 5) Sort & paginate
+        # 6) Sort & paginate
         if q_stripped:
-            # Có query: ưu tiên relevance, sau đó đến thời gian
+            # Có query: ưu tiên relevance, ưu tiên documents có category match lên trên cùng
             def _sort_key_relevance(d):
                 score = d.get("_relevance_score", 0.0)
                 created = d.get("createdAt") or d.get("created_at") or d.get("_id")
-                return (score, created)
+                # Documents có category match (score >= 200) được ưu tiên cao nhất
+                is_category_match = score >= 200.0
+                return (is_category_match, score, created)
 
             filtered.sort(key=_sort_key_relevance, reverse=True)
         else:

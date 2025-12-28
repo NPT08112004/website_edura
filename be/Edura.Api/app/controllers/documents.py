@@ -31,7 +31,23 @@ from app.services.aws_service import aws_service
 from app.services.ai_service import ai_service
 from app.services.mongo_service import mongo_collections
 from app.models.document import Document
-from app.utils.search_utils import calculate_relevance_score, create_normalized_text
+from app.utils.search_utils import calculate_relevance_score, create_normalized_text, strip_vn
+from app.utils.search_cache import search_cache
+from app.services.search_service import SearchService
+
+# BM25 imports với fallback (giữ lại để tương thích)
+try:
+    from app.utils.bm25_search import (
+        calculate_bm25_score_simple,
+        calculate_hybrid_score,
+        USE_BM25_SEARCH
+    )
+    from app.utils.bm25_stats_cache import load_bm25_stats_from_db
+    BM25_AVAILABLE = True
+except ImportError as e:
+    BM25_AVAILABLE = False
+    USE_BM25_SEARCH = False
+    print(f"[WARNING] BM25 search not available: {e}")
 from jwt import ExpiredSignatureError, InvalidTokenError
 from flask import current_app
 from bson import ObjectId
@@ -942,192 +958,17 @@ def get_documents():
     Hỗ trợ: search, schoolId, categoryId, fileType, length (short/medium/long),
             uploadDate (today|yesterday|last7days|last30days|month:YYYY:MM|year:YYYY|day:YYYY:MM:DD|week:YYYY:WW)
             page (default: 1), limit (default: 12, max: 100)
+    
+    Sử dụng SearchService để xử lý logic tìm kiếm.
     """
     try:
-        search = (request.args.get("search") or "").strip()
-        school_id = (request.args.get("schoolId") or "").strip()
-        category_id = (request.args.get("categoryId") or "").strip()
-        file_type = (request.args.get("fileType") or "").strip().lower()
-        length = (request.args.get("length") or "").strip().lower()
-        upload_date = (request.args.get("uploadDate") or "").strip()
+        # 1. Parse search parameters
+        params = SearchService.parse_search_params(request.args)
         
-        # Pagination parameters
-        try:
-            page = int(request.args.get("page", 1))
-            if page < 1:
-                page = 1
-        except (ValueError, TypeError):
-            page = 1
-        
-        try:
-            limit = int(request.args.get("limit", 12))
-            if limit < 1:
-                limit = 12
-            if limit > 100:
-                limit = 100
-        except (ValueError, TypeError):
-            limit = 12
-        
-        skip = (page - 1) * limit
-
-        # Không dùng regex MongoDB nữa vì:
-        # 1. Regex không bỏ dấu, nên không match đúng với normalize
-        # 2. Regex match quá rộng, có thể match từ không liên quan
-        # 3. Sẽ lọc chính xác bằng Python với search_in_multiple_fields sau
-        query_or = []
-
-        ands = []
-
-        # school/category: hỗ trợ cả ObjectId lẫn string (tương thích dữ liệu cũ)
-        def _or_id(field1, field2, val):
-            ors = []
-            try:
-                ors += [{field1: ObjectId(val)}, {field2: ObjectId(val)}]
-            except Exception:
-                pass
-            ors += [{field1: val}, {field2: val}]
-            return {"$or": ors}
-
-        if school_id:
-            ands.append(_or_id("schoolId", "school_id", school_id))
-        if category_id:
-            ands.append(_or_id("categoryId", "category_id", category_id))
-
-        # file type theo đuôi URL
-        if file_type == "pdf":
-            ands.append({"s3_url": {"$regex": r"\.pdf$", "$options": "i"}})
-        elif file_type in {"doc", "docx", "word"}:
-            ands.append({"s3_url": {"$regex": r"\.(docx|doc)$", "$options": "i"}})
-
-        # length (pages)
-        if length == "short":
-            ands.append({"pages": {"$lt": 10}})
-        elif length == "medium":
-            ands.append({"pages": {"$gte": 10, "$lte": 50}})
-        elif length == "long":
-            ands.append({"pages": {"$gt": 50}})
-
-        # upload date
-        if upload_date:
-            now = datetime.utcnow()
-            today_start = datetime(now.year, now.month, now.day)
-            date_filter = None
-            try:
-                if upload_date == "today":
-                    date_filter = {"$gte": today_start}
-                elif upload_date == "yesterday":
-                    ys = today_start - timedelta(days=1)
-                    date_filter = {"$gte": ys, "$lt": today_start}
-                elif upload_date == "last7days":
-                    date_filter = {"$gte": now - timedelta(days=7)}
-                elif upload_date == "last30days":
-                    date_filter = {"$gte": now - timedelta(days=30)}
-                elif upload_date.startswith("month:"):
-                    _, y, m = upload_date.split(":")
-                    y, m = int(y), int(m)
-                    m0 = datetime(y, m, 1)
-                    m1 = datetime(y+1, 1, 1) if m == 12 else datetime(y, m+1, 1)
-                    date_filter = {"$gte": m0, "$lt": m1}
-                elif upload_date.startswith("year:"):
-                    _, y = upload_date.split(":")
-                    y = int(y)
-                    y0, y1 = datetime(y, 1, 1), datetime(y+1, 1, 1)
-                    date_filter = {"$gte": y0, "$lt": y1}
-                elif upload_date.startswith("day:"):
-                    _, y, m, d = upload_date.split(":")
-                    d0 = datetime(int(y), int(m), int(d))
-                    d1 = d0 + timedelta(days=1)
-                    date_filter = {"$gte": d0, "$lt": d1}
-                elif upload_date.startswith("week:"):
-                    _, y, w = upload_date.split(":")
-                    y, w = int(y), int(w)
-                    jan4 = date(y, 1, 4)
-                    monday = jan4 - timedelta(days=jan4.weekday())
-                    start = monday + timedelta(weeks=w-1)
-                    week_start = datetime.combine(start, datetime.min.time())
-                    week_end = week_start + timedelta(days=7)
-                    date_filter = {"$gte": week_start, "$lt": week_end}
-            except Exception:
-                date_filter = None
-
-            if date_filter:
-                ands.append({"$or": [{"createdAt": date_filter}, {"created_at": date_filter}]})
-
-        # Build mongo query
-        mongo_query = {}
-        if ands:
-            mongo_query = {"$and": ands} if len(ands) > 1 else ands[0] if len(ands) == 1 else {}
-
-        # Query documents với MongoDB (tối ưu với searchText index)
-        # Tối ưu memory: Nếu có search, chỉ load và filter từng batch nhỏ
-        search_stripped = search.strip() if search else ""
-        
-        if search_stripped:
-            # Có search: Load từng batch, filter, và collect kết quả
-            # Giới hạn tối đa 1000 documents để tránh OOM
-            MAX_SEARCH_DOCS = 1000
-            filtered_docs = []
-            
-            try:
-                cursor = mongo_collections.documents.find(mongo_query).sort("createdAt", -1)
-            except Exception:
-                try:
-                    cursor = mongo_collections.documents.find(mongo_query).sort("created_at", -1)
-                except Exception:
-                    cursor = mongo_collections.documents.find(mongo_query)
-            
-            # Load và filter từng batch
-            batch_size = 100
-            processed = 0
-            for doc in cursor:
-                if processed >= MAX_SEARCH_DOCS:
-                    break
-                
-                title = doc.get("title", "") or ""
-                summary = doc.get("summary", "") or ""
-                keywords = doc.get("keywords", []) or []
-
-                score = calculate_relevance_score(search_stripped, title, keywords, summary)
-                if score > 0:
-                    doc["_relevance_score"] = score
-                    filtered_docs.append(doc)
-                
-                processed += 1
-                
-                # Giải phóng memory sau mỗi batch
-                if processed % batch_size == 0:
-                    import gc
-                    gc.collect()
-            
-            # Sắp xếp theo relevance trước, sau đó theo createdAt/created_at/_id
-            def _sort_key_relevance(d):
-                score = d.get("_relevance_score", 0.0)
-                created = d.get("createdAt") or d.get("created_at") or d.get("_id")
-                return (score, created)
-
-            filtered_docs.sort(key=_sort_key_relevance, reverse=True)
-            all_docs = filtered_docs
-            total_count = len(all_docs)
-            docs = all_docs[skip:skip + limit]
-        else:
-            # Không có search: Dùng pagination trực tiếp từ MongoDB
-            try:
-                cursor = mongo_collections.documents.find(mongo_query).sort("createdAt", -1)
-            except Exception:
-                try:
-                    cursor = mongo_collections.documents.find(mongo_query).sort("created_at", -1)
-                except Exception:
-                    cursor = mongo_collections.documents.find(mongo_query)
-            
-            # Đếm tổng số (chỉ khi cần, có thể skip nếu không quan trọng)
-            try:
-                total_count = mongo_collections.documents.count_documents(mongo_query)
-            except Exception:
-                # Fallback: đếm bằng cách load (chỉ khi thực sự cần)
-                total_count = len(list(cursor.clone()))
-            
-            # Apply pagination trực tiếp từ cursor
-            docs = list(cursor.skip(skip).limit(limit))
+        # 2. Search documents sử dụng SearchService
+        search_result = SearchService.search_documents(params, use_cache=True)
+        docs = search_result["documents"]
+        total_count = search_result["total"]
 
         # Chuẩn bị map thống kê phản ứng/bình luận
         doc_ids = [doc.get("_id") for doc in docs if doc.get("_id")]
@@ -1344,16 +1185,14 @@ def get_documents():
             except Exception:
                 pass
 
-        # Trả về với pagination metadata nếu có total_count
-        response = result
-        if total_count is not None:
-            response = {
-                "documents": result,
-                "total": total_count,
-                "page": page,
-                "limit": limit,
-                "totalPages": (total_count + limit - 1) // limit if limit > 0 else 0
-            }
+        # Trả về với pagination metadata
+        response = {
+            "documents": result,
+            "total": total_count,
+            "page": params["page"],
+            "limit": params["limit"],
+            "totalPages": search_result["totalPages"]
+        }
         
         return jsonify(response), 200
 

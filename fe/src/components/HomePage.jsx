@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, X, Globe, Filter, List, Grid, Menu } from 'lucide-react';
 import { getDocuments, getSchools, getCategories } from '../api';
@@ -33,6 +33,11 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
   const itemsPerPage = 12;
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
   
+  // Refs để tránh duplicate calls
+  const loadingRef = useRef(false);
+  const abortControllerRef = useRef(null);
+  const lastParamsRef = useRef({ searchQuery: '', filters: {}, currentPage: 1 });
+  
   // Get user info from localStorage
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('edura_token'));
   const [user, setUser] = useState(() => {
@@ -57,6 +62,12 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Load filters một lần khi mount
+  useEffect(() => {
+    loadFilters();
+  }, []);
+
+  // Parse URL params và update state
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const categoryIdFromUrl = urlParams.get('categoryId') || '';
@@ -75,26 +86,55 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
     setCurrentPage(1);
   }, [location.search]);
 
+  // Unified effect để load documents - tránh duplicate calls
   useEffect(() => {
-    loadFilters();
-  }, []);
+    // Kiểm tra xem params có thay đổi không
+    const paramsChanged = 
+      lastParamsRef.current.searchQuery !== searchQuery ||
+      JSON.stringify(lastParamsRef.current.filters) !== JSON.stringify(filters) ||
+      lastParamsRef.current.currentPage !== currentPage;
 
-  useEffect(() => {
-    // Debounce search
-    const timer = setTimeout(() => {
-      setCurrentPage(1); // Reset về trang 1 khi search/filter thay đổi
-      loadDocuments();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, filters]);
+    // Nếu không có gì thay đổi và đã có data, không cần load lại
+    // Nhưng cho phép load lần đầu (khi lastParamsRef chưa được set)
+    const isFirstLoad = lastParamsRef.current.searchQuery === '' && 
+                        Object.keys(lastParamsRef.current.filters).length === 0 &&
+                        lastParamsRef.current.currentPage === 1;
 
-  // Load lại khi chuyển trang
-  useEffect(() => {
-    if (currentPage > 0) {
-      loadDocuments();
+    if (!paramsChanged && !isFirstLoad && documents.length > 0) {
+      return;
     }
+
+    // Debounce cho search/filter changes (không debounce cho page changes)
+    const isSearchOrFilterChange = 
+      lastParamsRef.current.searchQuery !== searchQuery ||
+      JSON.stringify(lastParamsRef.current.filters) !== JSON.stringify(filters);
+
+    const delay = isSearchOrFilterChange ? 300 : 0;
+
+    const timer = setTimeout(() => {
+      // Cancel previous request nếu đang chạy
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Update last params
+      lastParamsRef.current = {
+        searchQuery,
+        filters: { ...filters },
+        currentPage
+      };
+
+      loadDocuments();
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [searchQuery, filters, currentPage]);
 
   const loadFilters = async () => {
     try {
@@ -123,8 +163,18 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
     }
   }, [filters.categoryId, categories]);
 
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
+    // Tránh duplicate calls
+    if (loadingRef.current) {
+      return;
+    }
+
+    loadingRef.current = true;
     setIsLoading(true);
+
+    // Tạo AbortController để có thể cancel request
+    abortControllerRef.current = new AbortController();
+
     try {
       // Gọi API với pagination - chỉ tải 12 items mỗi lần để tối ưu tốc độ
       const data = await getDocuments(searchQuery, filters, currentPage, itemsPerPage);
@@ -156,13 +206,18 @@ export default function HomePage({ switchToLogin, switchToRegister, switchToUplo
       setDocuments(documentsList);
       setTotalDocuments(totalCount);
     } catch (error) {
-      console.error('Error loading documents:', error);
-      setDocuments([]);
-      setTotalDocuments(0);
+      // Không log error nếu request bị cancel
+      if (error.name !== 'AbortError') {
+        console.error('Error loading documents:', error);
+        setDocuments([]);
+        setTotalDocuments(0);
+      }
     } finally {
       setIsLoading(false);
+      loadingRef.current = false;
+      abortControllerRef.current = null;
     }
-  };
+  }, [searchQuery, filters, currentPage, itemsPerPage]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));

@@ -151,21 +151,39 @@ def list_documents():
         search_stripped = search.strip()
         if search_stripped:
             filtered_docs = []
+            # Load categories trước để join với documents
+            category_ids_for_search = {d.get("categoryId") for d in all_docs if d.get("categoryId")}
+            category_map_for_search = {}
+            if category_ids_for_search:
+                for c in mongo_collections.categories.find(
+                    {"_id": {"$in": list(category_ids_for_search)}}, {"name": 1}
+                ):
+                    category_map_for_search[c["_id"]] = c.get("name", "")
+            
             for d in all_docs:
                 title = d.get("title", "") or ""
                 keywords = d.get("keywords", []) or []
-                summary = d.get("summary", "") or ""
+                
+                # Lấy category name
+                category_name = ""
+                cid = d.get("categoryId")
+                if cid:
+                    category_name = category_map_for_search.get(cid, "")
 
-                score = calculate_relevance_score(search_stripped, title, keywords, summary)
+                # Tính relevance score theo thứ tự ưu tiên: Category > Title > Keywords
+                # Hỗ trợ tìm kiếm không dấu và không khoảng cách
+                score = calculate_relevance_score(search_stripped, title, keywords, category_name)
                 if score > 0:
                     d["_relevance_score"] = score
                     filtered_docs.append(d)
 
-            # Sắp xếp theo relevance trước, sau đó theo createdAt/created_at/_id
+            # Sắp xếp theo relevance trước, ưu tiên documents có category match lên trên cùng
             def _sort_key_relevance(d):
                 score = d.get("_relevance_score", 0.0)
                 created = d.get("createdAt") or d.get("created_at") or d.get("_id")
-                return (score, created)
+                # Documents có category match (score >= 200) được ưu tiên cao nhất
+                is_category_match = score >= 200.0
+                return (is_category_match, score, created)
 
             all_docs = sorted(filtered_docs, key=_sort_key_relevance, reverse=True)
             filtered_docs = all_docs  # Đảm bảo filtered_docs được định nghĩa

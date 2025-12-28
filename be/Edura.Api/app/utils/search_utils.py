@@ -185,83 +185,219 @@ def calculate_relevance_score(
     query: str,
     title: str = "",
     keywords: List[str] | None = None,
-    summary: str = "",
+    category_name: str = "",
+    summary: str = "",  # Giữ parameter để tương thích, nhưng không dùng
 ) -> float:
     """
     Tính điểm relevance (độ liên quan) cho 1 document.
+    
+    THỨ TỰ ƯU TIÊN: Category > Title > Keywords
+    Hỗ trợ tìm kiếm không dấu và không khoảng cách.
 
     Luật chính:
-    - Bắt buộc phải có match trong title HOẶC keywords thì document
+    - Bắt buộc phải có match trong category HOẶC title HOẶC keywords thì document
       mới được coi là liên quan (score > 0).
-    - Summary chỉ cộng thêm điểm, không đủ để tài liệu xuất hiện một mình.
 
-    Trọng số:
+    Trọng số (theo thứ tự ưu tiên):
+    - Category (ưu tiên cao nhất):
+        - match từ đầu:   150
+        - match ở giữa:    120
     - Title:
-        - exact word:   100
-        - prefix match:  70
-        - short exact:   60  (ví dụ: "ai" trong "AI")
-    - Keywords:
-        - exact word:    80
-        - prefix match:  60
-        - short exact:   50
-    - Summary:
-        - exact word:    40
-        - prefix match:  25
-        - short exact:   20
+        - match từ đầu:   100
+        - match ở giữa:    80
+    - Keywords (ưu tiên thấp nhất):
+        - match từ đầu:    60
+        - match ở giữa:     40
+    
+    Hỗ trợ tìm kiếm:
+    - Không dấu: "laptrinh" match "Lập trình"
+    - Không khoảng cách: "laptrinh" match "Lập trình"
+    - Case-insensitive: "LAPTRINH" match "lập trình"
     """
     if not query or not query.strip():
         return 0.0
 
-    query_tokens = tokenize(query)
-    if not query_tokens:
+    # Normalize query: bỏ dấu, bỏ khoảng cách, lowercase
+    # Đây là cách chính để hỗ trợ tìm kiếm không dấu, không khoảng cách
+    query_normalized = strip_vn(query.strip())
+    query_normalized = re.sub(r"[^a-z0-9]+", "", query_normalized)
+    
+    if not query_normalized or len(query_normalized) < 1:
         return 0.0
 
-    title_tokens = tokenize(title)
-    title_normalized = strip_vn(title)
+    # Normalize category, title và keywords: bỏ dấu, bỏ khoảng cách, lowercase
+    category_normalized_no_space = ""
+    if category_name:
+        category_normalized = strip_vn(category_name)
+        category_normalized_no_space = re.sub(r"[^a-z0-9]+", "", category_normalized)
     
+    title_normalized_no_space = ""
+    if title:
+        title_normalized = strip_vn(title)
+        title_normalized_no_space = re.sub(r"[^a-z0-9]+", "", title_normalized)
+    
+    keywords_normalized_no_space = ""
     keywords_text = " ".join([str(k) for k in (keywords or []) if k])
-    keywords_tokens = tokenize(keywords_text)
-    keywords_normalized = strip_vn(keywords_text)
+    if keywords_text:
+        keywords_normalized = strip_vn(keywords_text)
+        keywords_normalized_no_space = re.sub(r"[^a-z0-9]+", "", keywords_normalized)
+
+    # Kiểm tra match không dấu, không khoảng cách
+    # THỨ TỰ ƯU TIÊN: Category > Title > Keywords
+    # CHỈ TÍNH ĐIỂM TỪ NGUỒN ƯU TIÊN CAO NHẤT (không cộng điểm từ nhiều nguồn)
     
-    summary_tokens = tokenize(summary)
-    summary_normalized = strip_vn(summary)
-
-    # Điểm cho title & keywords (primary match)
-    # Logic mới: với query 1 từ, chỉ match nếu từ đó là một từ RIÊNG BIỆT
-    # Ví dụ: search "toán" chỉ match "Toán cao cấp", KHÔNG match "Kế toán"
-    title_score = _score_field(
-        query_tokens,
-        title_tokens,
-        title_normalized,
-        weight_exact=100.0,
-        weight_prefix=70.0,
-        weight_short_exact=60.0,
-    )
-    keywords_score = _score_field(
-        query_tokens,
-        keywords_tokens,
-        keywords_normalized,
-        weight_exact=80.0,
-        weight_prefix=60.0,
-        weight_short_exact=50.0,
-    )
-
-    primary_score = title_score + keywords_score
-    if primary_score <= 0:
-        # Không match trong title/keywords -> coi như không liên quan
+    # Category match: ưu tiên cao nhất - phải match chính xác trong category name
+    # Chỉ match nếu query thực sự liên quan đến category (không phải substring ngẫu nhiên)
+    has_category_match = False
+    if category_normalized_no_space and len(query_normalized) >= 3:
+        # Match từ đầu category -> chắc chắn liên quan
+        if category_normalized_no_space.startswith(query_normalized):
+            has_category_match = True
+        elif query_normalized in category_normalized_no_space:
+            # Match ở giữa: CHỈ match nếu query là một từ riêng biệt
+            # Kiểm tra word boundary trong category name gốc
+            query_len = len(query_normalized)
+            category_normalized_with_space = strip_vn(category_name) if category_name else ""
+            if category_normalized_with_space:
+                category_words = category_normalized_with_space.split()
+                for word in category_words:
+                    word_no_space = re.sub(r"[^a-z0-9]+", "", word)
+                    # CHỈ match nếu query là toàn bộ từ (exact match)
+                    if query_normalized == word_no_space:
+                        has_category_match = True
+                        break
+                    # Hoặc match từ đầu nếu từ đủ dài (>= query_len + 1)
+                    elif word_no_space.startswith(query_normalized) and len(word_no_space) >= query_len + 1:
+                        has_category_match = True
+                        break
+    
+    # Title match: chỉ match nếu query là một từ riêng biệt hoặc đủ dài
+    has_title_match = False
+    if title_normalized_no_space and len(query_normalized) >= 3:
+        # Match từ đầu title -> chắc chắn liên quan
+        if title_normalized_no_space.startswith(query_normalized):
+            has_title_match = True
+        elif query_normalized in title_normalized_no_space:
+            query_len = len(query_normalized)
+            title_len = len(title_normalized_no_space)
+            
+            # Với query ngắn (< 5 ký tự): CHỈ match nếu là một từ riêng biệt
+            if query_len < 5:
+                # Kiểm tra word boundary: query phải là một từ riêng biệt trong title
+                title_normalized_with_space = strip_vn(title) if title else ""
+                if title_normalized_with_space:
+                    # Tách thành các từ và kiểm tra
+                    title_words = title_normalized_with_space.split()
+                    for word in title_words:
+                        word_no_space = re.sub(r"[^a-z0-9]+", "", word)
+                        # CHỈ match nếu query là toàn bộ từ (exact match)
+                        # KHÔNG match nếu query chỉ là prefix của từ dài hơn (tránh false positives)
+                        if query_normalized == word_no_space:
+                            has_title_match = True
+                            break
+                        # Hoặc match từ đầu nếu từ đủ dài (>= query_len + 1) để tránh match ngẫu nhiên
+                        elif word_no_space.startswith(query_normalized) and len(word_no_space) >= query_len + 1:
+                            # Chỉ match nếu từ bắt đầu bằng query và đủ dài
+                            # Ví dụ: "toan" match "toancap" (toán cấp) nhưng không match "toan" trong "quanlythoigian"
+                            has_title_match = True
+                            break
+            else:
+                # Query >= 5 ký tự: match nếu đủ dài hoặc chiếm đủ tỷ lệ
+                ratio = query_len / title_len if title_len > 0 else 0
+                if ratio >= 0.3:
+                    has_title_match = True
+                else:
+                    # Vẫn kiểm tra word boundary để chắc chắn
+                    title_normalized_with_space = strip_vn(title) if title else ""
+                    if title_normalized_with_space:
+                        title_words = title_normalized_with_space.split()
+                        for word in title_words:
+                            word_no_space = re.sub(r"[^a-z0-9]+", "", word)
+                            if query_normalized in word_no_space:
+                                has_title_match = True
+                                break
+    
+    # Keywords match: chỉ match nếu query match với một keyword riêng biệt
+    has_keywords_match = False
+    if keywords_normalized_no_space and len(query_normalized) >= 3:
+        # Kiểm tra từng keyword riêng lẻ
+        for keyword in (keywords or []):
+            if not keyword:
+                continue
+            keyword_normalized = strip_vn(str(keyword))
+            keyword_normalized_no_space = re.sub(r"[^a-z0-9]+", "", keyword_normalized)
+            
+            # Match từ đầu keyword -> chắc chắn liên quan
+            if keyword_normalized_no_space.startswith(query_normalized):
+                has_keywords_match = True
+                break
+            elif query_normalized in keyword_normalized_no_space:
+                # Match ở giữa: CHỈ match nếu query là một từ riêng biệt trong keyword
+                query_len = len(query_normalized)
+                keyword_words = keyword_normalized.split()
+                for word in keyword_words:
+                    word_no_space = re.sub(r"[^a-z0-9]+", "", word)
+                    # CHỈ match nếu query là toàn bộ từ (exact match)
+                    if query_normalized == word_no_space:
+                        has_keywords_match = True
+                        break
+                    # Hoặc match từ đầu nếu từ đủ dài (>= query_len + 1)
+                    elif word_no_space.startswith(query_normalized) and len(word_no_space) >= query_len + 1:
+                        has_keywords_match = True
+                        break
+                if has_keywords_match:
+                    break
+    
+    if not has_category_match and not has_title_match and not has_keywords_match:
         return 0.0
 
-    # Summary chỉ cộng thêm điểm nếu đã match ở title/keywords
-    summary_score = _score_field(
-        query_tokens,
-        summary_tokens,
-        summary_normalized,
-        weight_exact=40.0,
-        weight_prefix=25.0,
-        weight_short_exact=20.0,
-    )
+    # Tính điểm dựa trên match (theo thứ tự ưu tiên - chỉ tính điểm từ nguồn ưu tiên cao nhất)
+    score = 0.0
+    
+    # Category match: ưu tiên cao nhất - tăng điểm cao để đảm bảo luôn ở trên cùng
+    # Nếu match category thì documents này sẽ được ưu tiên hiển thị trước
+    if has_category_match and category_normalized_no_space:
+        if category_normalized_no_space.startswith(query_normalized):
+            score = 300.0  # Match từ đầu category - điểm rất cao để ưu tiên
+        elif query_normalized in category_normalized_no_space:
+            score = 250.0  # Match ở giữa category - điểm cao để ưu tiên
+        return score  # Return ngay, không kiểm tra title/keywords nữa
+    
+    # Title match: ưu tiên thứ hai - chỉ tính nếu không match category
+    if has_title_match and title_normalized_no_space:
+        if title_normalized_no_space.startswith(query_normalized):
+            score = 100.0  # Match từ đầu title
+        elif query_normalized in title_normalized_no_space:
+            score = 80.0   # Match ở giữa title
+        return score  # Return ngay, không kiểm tra keywords nữa
+    
+    # Keywords match: ưu tiên thấp nhất - chỉ tính nếu không match category và title
+    if has_keywords_match and keywords_normalized_no_space:
+        # Kiểm tra từng keyword riêng lẻ để tính điểm chính xác hơn
+        for keyword in (keywords or []):
+            if not keyword:
+                continue
+            keyword_normalized = strip_vn(str(keyword))
+            keyword_normalized_no_space = re.sub(r"[^a-z0-9]+", "", keyword_normalized)
+            
+            if query_normalized in keyword_normalized_no_space:
+                if keyword_normalized_no_space.startswith(query_normalized):
+                    score = 60.0  # Match từ đầu keyword
+                elif query_normalized in keyword_normalized_no_space:
+                    score = 40.0  # Match ở giữa keyword
+                break  # Chỉ tính điểm cho keyword đầu tiên match
+    
+    # Nếu có match nhưng score = 0 (edge case), cho điểm tối thiểu
+    if score == 0.0 and (has_category_match or has_title_match or has_keywords_match):
+        score = 30.0  # Điểm tối thiểu
+    
+    # Với query ngắn (< 5 ký tự), logic match đã được kiểm tra chặt chẽ ở trên:
+    # - Chỉ match nếu query là toàn bộ từ (exact match) HOẶC
+    # - Match từ đầu và từ đủ dài (>= query_len + 1)
+    # Điều này đảm bảo không có false positives
+    # Không cần double-check nữa vì logic đã chặt chẽ
 
-    return primary_score + summary_score
+    return score
 
 
 # ------------------------------------------------------------
@@ -310,11 +446,13 @@ def create_normalized_text(title: str = "", summary: str = "", keywords: List[st
 def search_in_multiple_fields(query: str, *fields: Union[str, List[str]]) -> bool:
     """
     API boolean đơn giản để filter nhanh.
+    
+    THỨ TỰ ƯU TIÊN: Category > Title > Keywords
 
     Logic:
-    - Gộp các fields: title, keywords (list), summary ... thành đúng 3 nhóm:
-      title, keywords, summary (nếu gọi đúng thứ tự).
-    - Tính score bằng `calculate_relevance_score`.
+    - Gộp các fields: title, keywords (list), category_name thành 3 nhóm:
+      title, keywords, category_name (nếu gọi đúng thứ tự).
+    - Tính score bằng `calculate_relevance_score` với thứ tự ưu tiên.
     - Trả về True nếu score > 0.
 
     Lưu ý:
@@ -326,9 +464,9 @@ def search_in_multiple_fields(query: str, *fields: Union[str, List[str]]) -> boo
 
     title = ""
     keywords: List[str] = []
-    summary = ""
+    category_name = ""
 
-    # Hỗ trợ gọi theo dạng (query, title, keywords, summary)
+    # Hỗ trợ gọi theo dạng (query, title, keywords, category_name)
     if len(fields) >= 1 and isinstance(fields[0], str):
         title = fields[0] or ""
     if len(fields) >= 2:
@@ -337,7 +475,8 @@ def search_in_multiple_fields(query: str, *fields: Union[str, List[str]]) -> boo
         elif isinstance(fields[1], str):
             keywords = [fields[1]]
     if len(fields) >= 3 and isinstance(fields[2], str):
-        summary = fields[2] or ""
+        category_name = fields[2] or ""
 
-    score = calculate_relevance_score(query, title, keywords, summary)
+    # Tính score theo thứ tự ưu tiên: Category > Title > Keywords
+    score = calculate_relevance_score(query, title, keywords, category_name)
     return score > 0.0

@@ -337,27 +337,36 @@ export async function searchDocuments({ q, schoolId, categoryId, page = 1, limit
 
 ### 5.2. Điểm yếu & Cải thiện
 
-⚠️ **Load toàn bộ vào memory:** Với dataset lớn, có thể tốn nhiều RAM  
-⚠️ **Không có index:** Search text không dùng MongoDB text index  
-⚠️ **Không có ranking:** Kết quả chỉ sort theo `createdAt`  
+#### ✅ Đã cải thiện:
 
-**Gợi ý cải thiện:**
+1. **✅ Sử dụng searchText index để filter sơ bộ:**
+   - Normalize query và filter bằng MongoDB regex trên field `searchText`
+   - Giảm số documents cần load vào memory từ 1000 xuống 500
+   - Giảm batch size từ 100 xuống 50 để tiết kiệm memory
 
-1. **MongoDB Text Index:**
-   ```python
-   # Tạo index
-   db.documents.create_index([
-       ("title", "text"),
-       ("summary", "text"),
-       ("keywords", "text")
-   ])
-   ```
+2. **✅ Caching mechanism:**
+   - Thêm in-memory cache với TTL 5 phút
+   - Cache key dựa trên tất cả query parameters
+   - Tự động cleanup entries đã hết hạn
+   - File: `app/utils/search_cache.py`
 
-2. **Elasticsearch/Solr:** Cho full-text search nâng cao
+3. **✅ Cải thiện ranking:**
+   - Relevance score từ title/keywords/summary
+   - Bonus điểm từ views (0.1 điểm/view)
+   - Bonus điểm từ downloads (0.2 điểm/download)
+   - Bonus điểm từ grade score (0.5 điểm/grade)
+   - Sort theo: relevance score (bao gồm popularity) → createdAt
 
-3. **Caching:** Cache kết quả search phổ biến
+4. **✅ Script update searchText:**
+   - Script `scripts/update_search_text.py` để update searchText cho documents cũ
+   - Chạy một lần để đảm bảo tất cả documents có searchText
 
-4. **Pagination trước khi filter:** Chỉ load documents cần thiết
+#### 🔄 Có thể cải thiện thêm:
+
+1. **Redis Cache:** Thay thế in-memory cache bằng Redis cho production
+2. **Elasticsearch/Solr:** Cho full-text search nâng cao với fuzzy matching
+3. **Search suggestions:** Gợi ý từ khóa phổ biến
+4. **Search analytics:** Theo dõi queries phổ biến để tối ưu
 
 ---
 
@@ -439,8 +448,14 @@ Chức năng tìm kiếm tài liệu của Edura được thiết kế tốt v�
 - ✅ Pagination và optimization
 - ✅ UI/UX tốt với debounce và URL sync
 
-**Có thể cải thiện:**
-- 🔄 MongoDB text index cho performance tốt hơn
-- 🔄 Ranking/relevance scoring
-- 🔄 Caching cho queries phổ biến
+**Đã cải thiện:**
+- ✅ Sử dụng searchText index để filter sơ bộ
+- ✅ Caching mechanism (in-memory, có thể nâng cấp Redis)
+- ✅ Ranking với relevance + popularity (views, downloads, grade)
+- ✅ Tối ưu memory usage (giảm MAX_SEARCH_DOCS, batch size)
+
+**Có thể cải thiện thêm:**
+- 🔄 Redis cache cho production scale
+- 🔄 Elasticsearch cho advanced search
+- 🔄 Search suggestions và analytics
 
