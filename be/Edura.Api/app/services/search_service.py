@@ -6,6 +6,7 @@ Tổ chức lại luồng tìm kiếm cho rõ ràng và dễ maintain
 """
 
 import os
+import logging
 from typing import Dict, List, Optional, Tuple
 from bson import ObjectId
 from datetime import datetime, timedelta, date
@@ -13,6 +14,8 @@ from datetime import datetime, timedelta, date
 from app.services.mongo_service import mongo_collections
 from app.utils.search_utils import calculate_relevance_score
 from app.utils.search_cache import search_cache
+
+logger = logging.getLogger(__name__)
 
 # BM25 imports với fallback
 try:
